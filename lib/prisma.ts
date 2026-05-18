@@ -1,12 +1,12 @@
 import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaNeon } from "@prisma/adapter-neon";
 
 function createPrismaClient() {
-  const connectionString = process.env.DATABASE_URL; // establish a connection to the database
-  if (!connectionString) throw new Error("DATABASE_URL is not set"); // if no database url is found throws this error
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) throw new Error("DATABASE_URL is not set");
 
-  const adapter = new PrismaPg({ connectionString }); // calls pg.pool (node database driver for postgre) to establish a connection pool with postgre
-  return new PrismaClient({ //return a prisma client object with the adapter and log
+  const adapter = new PrismaNeon({ connectionString });
+  return new PrismaClient({
     adapter,
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   });
