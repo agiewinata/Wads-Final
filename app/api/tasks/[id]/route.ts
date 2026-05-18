@@ -2,15 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { TaskCategory } from "@prisma/client";
 import { z } from "zod";
 
 const updateSchema = z.object({
-  title: z.string().min(1).optional(),
-  details: z.string().optional().nullable(),
-  subject: z.string().optional().nullable(),
-  dueDate: z.string().datetime().optional().nullable(),
-  category: z.nativeEnum(TaskCategory).optional(),
+  title:    z.string().min(1).optional(),
+  details:  z.string().optional().nullable(),
+  priority: z.number().int().min(1).max(5).optional().nullable(),
+  dueDate:  z.string().datetime().optional().nullable(),
+  category: z.string().optional().nullable(),
   completed: z.boolean().optional(),
 });
 

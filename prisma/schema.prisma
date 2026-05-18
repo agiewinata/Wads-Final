@@ -6,39 +6,45 @@ datasource db {
   provider = "postgresql"
 }
 
-enum TaskCategory {
-  ASSIGNMENT
-  PROJECT
-  EXAM
-}
-
 model User {
-  id            String    @id @default(cuid())
+  id            String         @id @default(cuid())
   name          String?
-  email         String    @unique
-  emailVerified Boolean   @default(false)
+  email         String         @unique
+  emailVerified Boolean        @default(false)
   image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
-  sessions Session[]
-  accounts Account[]
-  tasks    Task[]
+  sessions   Session[]
+  accounts   Account[]
+  tasks      Task[]
+  categories UserCategory[]
 }
 
 model Task {
-  id        String       @id @default(cuid())
+  id        String    @id @default(cuid())
   title     String
   details   String?
-  subject   String?
+  priority  Int?
   dueDate   DateTime?
-  category  TaskCategory @default(ASSIGNMENT)
-  completed Boolean      @default(false)
+  category  String?
+  completed Boolean   @default(false)
   userId    String
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserCategory {
+  id        String   @id @default(cuid())
+  name      String
+  userId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([name, userId])
 }
 
 model Session {

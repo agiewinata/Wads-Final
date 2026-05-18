@@ -2,15 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { TaskCategory } from "@prisma/client";
 import { z } from "zod";
 
 const createSchema = z.object({
-  title: z.string().min(1),
-  details: z.string().optional(),
-  subject: z.string().optional(),
-  dueDate: z.string().datetime().optional().nullable(),
-  category: z.nativeEnum(TaskCategory).optional(),
+  title:    z.string().min(1),
+  details:  z.string().optional().nullable(),
+  priority: z.number().int().min(1).max(5).optional().nullable(),
+  dueDate:  z.string().datetime().optional().nullable(),
+  category: z.string().optional().nullable(),
 });
 
 export async function GET(req: NextRequest) {
@@ -18,7 +17,7 @@ export async function GET(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = req.nextUrl;
-  const category = searchParams.get("category") as TaskCategory | null;
+  const category = searchParams.get("category");
 
   const tasks = await prisma.task.findMany({
     where: {
@@ -37,20 +36,19 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const parsed = createSchema.safeParse(body);
-  if (!parsed.success) {
+  if (!parsed.success)
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  }
 
-  const { title, details, subject, dueDate, category } = parsed.data;
+  const { title, details, priority, dueDate, category } = parsed.data;
 
   const task = await prisma.task.create({
     data: {
       title,
       details,
-      subject,
-      dueDate: dueDate ? new Date(dueDate) : null,
-      category: category ?? "ASSIGNMENT",
-      userId: session.user.id,
+      priority,
+      dueDate:  dueDate ? new Date(dueDate) : null,
+      category: category || null,
+      userId:   session.user.id,
     },
   });
 

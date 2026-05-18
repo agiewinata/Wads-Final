@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Task" DROP COLUMN IF EXISTS "subject",
+ADD COLUMN IF NOT EXISTS "priority" INTEGER;
