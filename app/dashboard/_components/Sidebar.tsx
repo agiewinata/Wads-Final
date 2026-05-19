@@ -9,7 +9,7 @@ const NAV: ({ label: string; href: string } | { label: string; href: null })[] =
   { label: "Dashboard", href: "/dashboard" },
   { label: "Tasks",     href: "/dashboard/tasks" },
   { label: "AI",        href: "/dashboard/ai" },
-  { label: "Calendar",  href: null },
+  { label: "Calendar",  href: "/dashboard/calendar" },
   { label: "Timer",     href: null },
   { label: "Settings",  href: null },
 ];
