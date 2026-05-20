@@ -5,6 +5,13 @@ import { useEffect, useRef, useState } from "react";
 type TimerMode = "focus" | "shortBreak" | "longBreak";
 type ScreenMode = "timer" | "settings";
 
+const RADIUS = 98;
+const CENTER = 112;
+const REWIND_DURATION = 1000;
+const SNAP_DELAY = 100;
+const KNOB_SIZE = 36;
+const KNOB_OFFSET = KNOB_SIZE / 2;
+
 export default function TimerPage() {
     const [screen, setScreen] = useState<ScreenMode>("timer");
 
@@ -18,6 +25,10 @@ export default function TimerPage() {
 
     const [secondsLeft, setSecondsLeft] = useState(25 * 60);
     const [isRunning, setIsRunning] = useState(false);
+    const [isRewinding, setIsRewinding] = useState(false);
+    const [rewindProgress, setRewindProgress] = useState(0);
+    const [rewindStartProgress, setRewindStartProgress] = useState(0);
+    const [isSnapping, setIsSnapping] = useState(false);
 
     const [popupMessage, setPopupMessage] = useState("");
 
@@ -50,6 +61,8 @@ export default function TimerPage() {
         }, 1000);
 
         return () => clearInterval(interval);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isRunning, mode, completedFocusSessions]);
 
     function playAlarmSound() {
@@ -103,32 +116,68 @@ export default function TimerPage() {
         }
     }
 
-    function handleTimerFinish() {
+    function animateBackToFull(onComplete: () => void, startProgress = progress) {
         setIsRunning(false);
+        setRewindStartProgress(startProgress);
+        setIsRewinding(true);
+        setRewindProgress(0);
 
-        if (mode === "focus") {
-            const newCompletedSessions = completedFocusSessions + 1;
-            setCompletedFocusSessions(newCompletedSessions);
+        const duration = REWIND_DURATION;
+        const startTime = performance.now();
 
-            const shouldTakeLongBreak =
-                newCompletedSessions % longBreakInterval === 0;
+        function animateRewind(currentTime: number) {
+            const elapsed = currentTime - startTime;
+            const nextProgress = Math.min(elapsed / duration, 1);
 
-            if (shouldTakeLongBreak) {
-                setMode("longBreak");
-                showNotification("Time for a long break!");
+            setRewindProgress(nextProgress);
+
+            if (nextProgress < 1) {
+                requestAnimationFrame(animateRewind);
             } else {
-                setMode("shortBreak");
-                showNotification("Time for a break!");
+                setIsSnapping(true);
+                setIsRewinding(false);
+                setRewindProgress(0);
+
+                onComplete();
+
+                setTimeout(() => {
+                    setIsSnapping(false);
+                }, SNAP_DELAY);
             }
-        } else {
-            setMode("focus");
-            showNotification("Break is over! Time to focus.");
         }
+
+        requestAnimationFrame(animateRewind);
+    }
+
+    function handleTimerFinish() {
+        setSecondsLeft(0);
+
+        animateBackToFull(() => {
+            if (mode === "focus") {
+                const newCompletedSessions = completedFocusSessions + 1;
+                setCompletedFocusSessions(newCompletedSessions);
+
+                const shouldTakeLongBreak =
+                    newCompletedSessions % longBreakInterval === 0;
+
+                if (shouldTakeLongBreak) {
+                    setMode("longBreak");
+                    showNotification("Time for a long break!");
+                } else {
+                    setMode("shortBreak");
+                    showNotification("Time for a break!");
+                }
+            } else {
+                setMode("focus");
+                showNotification("Break is over! Time to focus.");
+            }
+        }, 0);
     }
 
     function resetTimer() {
-        setSecondsLeft(currentMinutes * 60);
-        setIsRunning(false);
+        animateBackToFull(() => {
+            setSecondsLeft(currentMinutes * 60);
+        });
     }
 
     function saveSettings() {
@@ -141,6 +190,38 @@ export default function TimerPage() {
     const displayMinutes = Math.floor(secondsLeft / 60);
     const displaySeconds = secondsLeft % 60;
 
+    const totalSeconds = currentMinutes * 60;
+    const progress = isRewinding
+        ? rewindStartProgress + (1 - rewindStartProgress) * rewindProgress
+        : totalSeconds > 0
+        ? secondsLeft / totalSeconds
+        : 0;
+
+    const circumference = 2 * Math.PI * RADIUS;
+    const strokeDashoffset = circumference * (1 - progress);
+
+    const elapsedProgress = 1 - progress;
+    const angle = 90 + elapsedProgress * 360;
+
+    const knobX = CENTER - RADIUS * Math.cos((angle * Math.PI) / 180);
+    const knobY = CENTER + RADIUS * Math.sin((angle * Math.PI) / 180);
+
+    const modeLabel =
+        mode === "focus"
+            ? "Focus session"
+            : mode === "shortBreak"
+            ? "Short break"
+            : "Long break";
+
+    const innerModeLabel =
+        mode === "focus"
+            ? "Focus"
+            : mode === "shortBreak"
+            ? "Break"
+            : "Long Break";
+
+    const shouldDisableTransition = isRewinding || isSnapping;
+    
     return (
         <div className="relative flex w-full justify-center">
             {popupMessage && (
@@ -162,32 +243,20 @@ export default function TimerPage() {
                         </h1>
 
                         <p className="text-sm text-zinc-500 mb-8">
-                            {mode === "focus"
-                                ? "Focus session"
-                                : mode === "shortBreak"
-                                ? "Short break"
-                                : "Long break"}
+                            {modeLabel}
                         </p>
 
-                        <div className="relative flex h-56 w-56 items-center justify-center rounded-full border-[10px] border-zinc-900 mb-8">
-                            <div className="text-center">
-                                <p className="text-sm text-zinc-500 mb-1">
-                                    {mode === "focus"
-                                        ? "Focus"
-                                        : mode === "shortBreak"
-                                        ? "Break"
-                                        : "Long Break"}
-                                </p>
-
-                                <p className="text-5xl font-bold text-zinc-900">
-                                    {String(displayMinutes).padStart(2, "0")}:
-                                    {String(displaySeconds).padStart(2, "0")}
-                                </p>
-                            </div>
-
-                            <div className="absolute bottom-[-18px] h-9 w-9 rounded-full border-[6px] border-zinc-900 bg-zinc-100" />
-                        </div>
-
+                        <TimerCircle
+                            circumference={circumference}
+                            strokeDashoffset={strokeDashoffset}
+                            knobX={knobX}
+                            knobY={knobY}
+                            shouldDisableTransition={shouldDisableTransition}
+                            innerModeLabel={innerModeLabel}
+                            displayMinutes={displayMinutes}
+                            displaySeconds={displaySeconds}
+                        />
+                        
                         <div className="grid grid-cols-3 gap-2 w-full mb-6">
                             <button
                                 onClick={() => {
@@ -233,8 +302,8 @@ export default function TimerPage() {
 
                             <button
                                 onClick={async () => {
-                                await requestNotificationPermission();
-                                setIsRunning((prev) => !prev);
+                                    await requestNotificationPermission();
+                                    setIsRunning((prev) => !prev);
                                 }}
                                 className="flex h-20 w-20 items-center justify-center rounded-full bg-zinc-900 text-white text-3xl font-bold hover:bg-zinc-700"
                             >
@@ -300,6 +369,85 @@ export default function TimerPage() {
                         </div>
                     </div>
                 )}
+            </div>
+        </div>
+    );
+}
+
+function TimerCircle({
+    circumference,
+    strokeDashoffset,
+    knobX,
+    knobY,
+    shouldDisableTransition,
+    innerModeLabel,
+    displayMinutes,
+    displaySeconds,
+}: {
+    circumference: number;
+    strokeDashoffset: number;
+    knobX: number;
+    knobY: number;
+    shouldDisableTransition: boolean;
+    innerModeLabel: string;
+    displayMinutes: number;
+    displaySeconds: number;
+}) {
+    return (
+        <div className="relative mb-8 h-56 w-56">
+            <svg
+                className="h-full w-full rotate-90"
+                viewBox="0 0 224 224"
+            >
+                <circle
+                    cx={CENTER}
+                    cy={CENTER}
+                    r={RADIUS}
+                    fill="none"
+                    stroke="rgba(0,0,0,0.1)"
+                    strokeWidth="10"
+                />
+
+                <circle
+                    cx={CENTER}
+                    cy={CENTER}
+                    r={RADIUS}
+                    fill="none"
+                    stroke="black"
+                    strokeWidth="10"
+                    strokeLinecap="round"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={strokeDashoffset}
+                    className={`will-change-[stroke-dashoffset] ${
+                        shouldDisableTransition
+                            ? "transition-none"
+                            : "transition-[stroke-dashoffset] duration-1000 ease-linear"
+                    }`}
+                />
+            </svg>
+
+            <div
+                className={`absolute left-0 top-0 h-9 w-9 rounded-full border-[6px] border-zinc-900 bg-zinc-100 will-change-transform ${
+                    shouldDisableTransition
+                        ? "transition-none"
+                        : "transition-transform duration-1000 ease-linear"
+                }`}
+                style={{
+                    transform: `translate(${knobX - KNOB_OFFSET}px, ${knobY - KNOB_OFFSET}px)`,
+                }}
+            />
+
+            <div className="absolute inset-0 flex items-center justify-center text-center">
+                <div>
+                    <p className="text-sm text-zinc-500 mb-1">
+                        {innerModeLabel}
+                    </p>
+
+                    <p className="text-5xl font-bold text-zinc-900">
+                        {String(displayMinutes).padStart(2, "0")}:
+                        {String(displaySeconds).padStart(2, "0")}
+                    </p>
+                </div>
             </div>
         </div>
     );
