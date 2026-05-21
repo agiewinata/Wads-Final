@@ -20,8 +20,9 @@ export default function CalendarPage() {
   useEffect(() => {
     async function fetchTasks() {
       try {
-        const response = await fetch("/api/tasks");
-
+        const response = await fetch("/api/tasks", {
+          credentials: "include",
+        });
         if (!response.ok) {
           throw new Error("Failed to fetch tasks");
         }
