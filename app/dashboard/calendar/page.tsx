@@ -10,6 +10,7 @@ interface Task {
   dueDate: string | null;
   priority?: number | null;
   category?: string | null;
+  completed: boolean;
 }
 
 export default function CalendarPage() {
@@ -77,7 +78,7 @@ export default function CalendarPage() {
         tileContent={({ date, view }) => {
           if (view !== "month") return null;
 
-          const hasTask = tasks.some((task) => {
+          const dayTasks = tasks.filter((task) => {
             if (!task.dueDate) return false;
 
             const due = new Date(task.dueDate);
@@ -89,7 +90,24 @@ export default function CalendarPage() {
             );
           });
 
-          if (!hasTask) return null;
+          if (dayTasks.length === 0) return null;
+
+          let dotColor = "#111";
+
+          if (dayTasks.some((task) => task.completed)) {
+            dotColor = "#16a34a";
+          }
+
+          if (
+            dayTasks.some(
+              (task) =>
+                !task.completed &&
+                task.dueDate &&
+                new Date(task.dueDate) < new Date()
+            )
+          ) {
+            dotColor = "#dc2626";
+          }
 
           return (
             <div className="mt-1 flex justify-center">
@@ -98,7 +116,7 @@ export default function CalendarPage() {
                   width: 6,
                   height: 6,
                   borderRadius: "999px",
-                  background: "#111",
+                  background: dotColor,
                 }}
               />
             </div>
@@ -122,66 +140,91 @@ export default function CalendarPage() {
           </p>
         ) : (
           <div className="space-y-3">
-            {selectedTasks.map((task) => (
-              <div
-                key={task.id}
-                className="p-4 bg-zinc-50"
-                style={{
-                  border: "2px solid #111",
-                  borderRadius: "4px 6px 4px 6px",
-                }}
-              >
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <h3 className="font-semibold text-zinc-900">
-                      {task.title}
-                    </h3>
+            {selectedTasks.map((task) => {
+              const isOverdue =
+                task.dueDate &&
+                !task.completed &&
+                new Date(task.dueDate) < new Date();
 
-                    {task.category && (
-                      <p className="text-sm text-zinc-500 mt-1">
-                        Category: {task.category}
-                      </p>
-                    )}
+              return (
+                <div
+                  key={task.id}
+                  className="p-4 bg-zinc-50"
+                  style={{
+                    border: "2px solid #111",
+                    borderRadius: "4px 6px 4px 6px",
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <h3 className="font-semibold text-zinc-900">
+                        {task.title}
+                      </h3>
 
-                    {task.dueDate && (
-                      <p className="text-sm text-zinc-500 mt-2">
-                        Due:{" "}
-                        {new Date(task.dueDate).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                    )}
-                  </div>
-
-                  {task.priority && (() => {
-                    const priorityColors = {
-                      1: "#fde047",
-                      2: "#eab308",
-                      3: "#ca8a04",
-                      4: "#ea580c",
-                      5: "#dc2626",
-                    };
-
-                    return (
-                      <div
-                        className="text-xs font-bold px-2 py-1 text-black"
-                        style={{
-                          border: "2px solid #111",
-                          borderRadius: "4px",
-                          background:
-                            priorityColors[
-                              task.priority as keyof typeof priorityColors
-                            ],
-                        }}
-                      >
-                        P{task.priority}
+                      {/* Status */}
+                      <div className="flex items-center gap-2 mt-2">
+                        {task.completed ? (
+                          <span className="text-sm font-medium text-green-600">
+                            ✅ Done
+                          </span>
+                        ) : isOverdue ? (
+                          <span className="text-sm font-medium text-red-600">
+                            ⚠️ Overdue
+                          </span>
+                        ) : (
+                          <span className="text-sm font-medium text-zinc-500">
+                            • Pending
+                          </span>
+                        )}
                       </div>
-                    );
-                  })()}
+
+                      {task.category && (
+                        <p className="text-sm text-zinc-500 mt-2">
+                          Category: {task.category}
+                        </p>
+                      )}
+
+                      {task.dueDate && (
+                        <p className="text-sm text-zinc-500 mt-2">
+                          Due:{" "}
+                          {new Date(task.dueDate).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Priority */}
+                    {task.priority && (() => {
+                      const priorityColors = {
+                        1: "#fde047",
+                        2: "#eab308",
+                        3: "#ca8a04",
+                        4: "#ea580c",
+                        5: "#dc2626",
+                      };
+
+                      return (
+                        <div
+                          className="text-xs font-bold px-2 py-1 text-black"
+                          style={{
+                            border: "2px solid #111",
+                            borderRadius: "4px",
+                            background:
+                              priorityColors[
+                                task.priority as keyof typeof priorityColors
+                              ],
+                          }}
+                        >
+                          P{task.priority}
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
