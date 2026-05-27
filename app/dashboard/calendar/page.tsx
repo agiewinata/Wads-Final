@@ -13,26 +13,43 @@ interface Task {
   completed: boolean;
 }
 
+interface Event {
+  id: string;
+  title: string;
+  details?: string | null;
+  startDate: string;
+  dueDate?: string | null;
+  category?: string | null;
+}
+
 export default function CalendarPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchTasks() {
+    async function fetchData() {
       try {
-        const response = await fetch("/api/tasks", {
-          credentials: "include",
-        });
+        /* Fetch tasks */
+        const taskResponse = await fetch("/api/tasks");
+        const taskData = await taskResponse.json();
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          console.error(data);
-          return;
+        if (taskResponse.ok) {
+          setTasks(taskData);
+        } else {
+          console.error(taskData);
         }
 
-        setTasks(data);
+        /* Fetch events */
+        const eventResponse = await fetch("/api/events");
+        const eventData = await eventResponse.json();
+
+        if (eventResponse.ok) {
+          setEvents(eventData);
+        } else {
+          console.error(eventData);
+        }
       } catch (error) {
         console.error(error);
       } finally {
@@ -40,7 +57,7 @@ export default function CalendarPage() {
       }
     }
 
-    fetchTasks();
+    fetchData();
   }, []);
 
   const selectedTasks = useMemo(() => {
@@ -56,6 +73,18 @@ export default function CalendarPage() {
       );
     });
   }, [tasks, selectedDate]);
+
+  const selectedEvents = useMemo(() => {
+    return events.filter((event) => {
+      const start = new Date(event.startDate);
+
+      return (
+        start.getDate() === selectedDate.getDate() &&
+        start.getMonth() === selectedDate.getMonth() &&
+        start.getFullYear() === selectedDate.getFullYear()
+      );
+    });
+  }, [events, selectedDate]);
 
   return (
     <div
@@ -78,6 +107,7 @@ export default function CalendarPage() {
         tileContent={({ date, view }) => {
           if (view !== "month") return null;
 
+          /* Tasks on day */
           const dayTasks = tasks.filter((task) => {
             if (!task.dueDate) return false;
 
@@ -90,12 +120,25 @@ export default function CalendarPage() {
             );
           });
 
-          if (dayTasks.length === 0) return null;
+          /* Events on day */
+          const dayEvents = events.filter((event) => {
+            const start = new Date(event.startDate);
 
-          let dotColor = "#111";
+            return (
+              start.getDate() === date.getDate() &&
+              start.getMonth() === date.getMonth() &&
+              start.getFullYear() === date.getFullYear()
+            );
+          });
+
+          if (dayTasks.length === 0 && dayEvents.length === 0) {
+            return null;
+          }
+
+          let taskDotColor = "#111";
 
           if (dayTasks.some((task) => task.completed)) {
-            dotColor = "#16a34a";
+            taskDotColor = "#16a34a";
           }
 
           if (
@@ -106,126 +149,201 @@ export default function CalendarPage() {
                 new Date(task.dueDate) < new Date()
             )
           ) {
-            dotColor = "#dc2626";
+            taskDotColor = "#dc2626";
           }
 
           return (
-            <div className="mt-1 flex justify-center">
-              <div
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: "999px",
-                  background: dotColor,
-                }}
-              />
+            <div className="mt-1 flex justify-center gap-1">
+              {/* Task dot */}
+              {dayTasks.length > 0 && (
+                <div
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "999px",
+                    background: taskDotColor,
+                  }}
+                />
+              )}
+
+              {/* Event dot */}
+              {dayEvents.length > 0 && (
+                <div
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "999px",
+                    background: "#2563eb",
+                  }}
+                />
+              )}
             </div>
           );
         }}
       />
 
-      {/* Tasks */}
+      {/* Selected Date */}
       <div className="mt-8">
-        <h2 className="text-lg font-semibold text-zinc-900 mb-4">
-          Tasks for {selectedDate.toDateString()}
+        <h2 className="text-lg font-semibold text-zinc-900 mb-6">
+          {selectedDate.toDateString()}
         </h2>
 
-        {loading ? (
+        {loading && (
           <p className="text-sm text-zinc-400 italic">
-            loading tasks...
+            loading...
           </p>
-        ) : selectedTasks.length === 0 ? (
-          <p className="text-sm text-zinc-500">
-            No tasks due.
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {selectedTasks.map((task) => {
-              const isOverdue =
-                task.dueDate &&
-                !task.completed &&
-                new Date(task.dueDate) < new Date();
+        )}
 
-              return (
-                <div
-                  key={task.id}
-                  className="p-4 bg-zinc-50"
-                  style={{
-                    border: "2px solid #111",
-                    borderRadius: "4px 6px 4px 6px",
-                  }}
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <h3 className="font-semibold text-zinc-900">
-                        {task.title}
-                      </h3>
+        {/* Tasks */}
+        {!loading && (
+          <>
+            <h3 className="text-md font-semibold mb-3">
+              Tasks
+            </h3>
 
-                      {/* Status */}
-                      <div className="flex items-center gap-2 mt-2">
-                        {task.completed ? (
-                          <span className="text-sm font-medium text-green-600">
-                            ✅ Done
-                          </span>
-                        ) : isOverdue ? (
-                          <span className="text-sm font-medium text-red-600">
-                            ⚠️ Overdue
-                          </span>
-                        ) : (
-                          <span className="text-sm font-medium text-zinc-500">
-                            • Pending
-                          </span>
-                        )}
-                      </div>
+            {selectedTasks.length === 0 ? (
+              <p className="text-sm text-zinc-500 mb-6">
+                No tasks due.
+              </p>
+            ) : (
+              <div className="space-y-3 mb-8">
+                {selectedTasks.map((task) => {
+                  const isOverdue =
+                    task.dueDate &&
+                    !task.completed &&
+                    new Date(task.dueDate) < new Date();
 
-                      {task.category && (
-                        <p className="text-sm text-zinc-500 mt-2">
-                          Category: {task.category}
-                        </p>
-                      )}
+                  return (
+                    <div
+                      key={task.id}
+                      className="p-4 bg-zinc-50"
+                      style={{
+                        border: "2px solid #111",
+                        borderRadius: "4px 6px 4px 6px",
+                      }}
+                    >
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <h3 className="font-semibold text-zinc-900">
+                            {task.title}
+                          </h3>
 
-                      {task.dueDate && (
-                        <p className="text-sm text-zinc-500 mt-2">
-                          Due:{" "}
-                          {new Date(task.dueDate).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </p>
-                      )}
-                    </div>
+                          {/* Status */}
+                          <div className="flex items-center gap-2 mt-2">
+                            {task.completed ? (
+                              <span className="text-sm font-medium text-green-600">
+                                ✅ Done
+                              </span>
+                            ) : isOverdue ? (
+                              <span className="text-sm font-medium text-red-600">
+                                ⚠️ Overdue
+                              </span>
+                            ) : (
+                              <span className="text-sm font-medium text-zinc-500">
+                                • Pending
+                              </span>
+                            )}
+                          </div>
 
-                    {/* Priority */}
-                    {task.priority && (() => {
-                      const priorityColors = {
-                        1: "#fde047",
-                        2: "#eab308",
-                        3: "#ca8a04",
-                        4: "#ea580c",
-                        5: "#dc2626",
-                      };
+                          {task.category && (
+                            <p className="text-sm text-zinc-500 mt-2">
+                              Category: {task.category}
+                            </p>
+                          )}
 
-                      return (
-                        <div
-                          className="text-xs font-bold px-2 py-1 text-black"
-                          style={{
-                            border: "2px solid #111",
-                            borderRadius: "4px",
-                            background:
-                              priorityColors[
-                                task.priority as keyof typeof priorityColors
-                              ],
-                          }}
-                        >
-                          P{task.priority}
+                          {task.dueDate && (
+                            <p className="text-sm text-zinc-500 mt-2">
+                              Due:{" "}
+                              {new Date(task.dueDate).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                          )}
                         </div>
-                      );
-                    })()}
+
+                        {/* Priority */}
+                        {task.priority && (() => {
+                          const priorityColors = {
+                            1: "#fde047",
+                            2: "#eab308",
+                            3: "#ca8a04",
+                            4: "#ea580c",
+                            5: "#dc2626",
+                          };
+
+                          return (
+                            <div
+                              className="text-xs font-bold px-2 py-1 text-black"
+                              style={{
+                                border: "2px solid #111",
+                                borderRadius: "4px",
+                                background:
+                                  priorityColors[
+                                    task.priority as keyof typeof priorityColors
+                                  ],
+                              }}
+                            >
+                              P{task.priority}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Events */}
+            <h3 className="text-md font-semibold mb-3">
+              Events
+            </h3>
+
+            {selectedEvents.length === 0 ? (
+              <p className="text-sm text-zinc-500">
+                No events.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {selectedEvents.map((event) => (
+                  <div
+                    key={event.id}
+                    className="p-4"
+                    style={{
+                      border: "2px solid #2563eb",
+                      borderRadius: "6px",
+                      background: "#eff6ff",
+                    }}
+                  >
+                    <h3 className="font-semibold text-zinc-900">
+                      {event.title}
+                    </h3>
+
+                    {event.category && (
+                      <p className="text-sm text-zinc-500 mt-2">
+                        Category: {event.category}
+                      </p>
+                    )}
+
+                    <p className="text-sm text-zinc-500 mt-2">
+                      Starts:{" "}
+                      {new Date(event.startDate).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+
+                    {event.details && (
+                      <p className="text-sm text-zinc-700 mt-3">
+                        {event.details}
+                      </p>
+                    )}
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
