@@ -27,6 +27,15 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(true);
+  const [showEventModal, setShowEventModal] = useState(false);
+
+  const [eventForm, setEventForm] = useState({
+    title: "",
+    details: "",
+    category: "",
+    startDate: "",
+    dueDate: "",
+  });
 
   useEffect(() => {
     async function fetchData() {
@@ -78,13 +87,64 @@ export default function CalendarPage() {
     return events.filter((event) => {
       const start = new Date(event.startDate);
 
-      return (
-        start.getDate() === selectedDate.getDate() &&
-        start.getMonth() === selectedDate.getMonth() &&
-        start.getFullYear() === selectedDate.getFullYear()
+      const end = event.dueDate
+        ? new Date(event.dueDate)
+        : start;
+
+      const selected = new Date(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth(),
+        selectedDate.getDate()
       );
+
+      const startDay = new Date(
+        start.getFullYear(),
+        start.getMonth(),
+        start.getDate()
+      );
+
+      const endDay = new Date(
+        end.getFullYear(),
+        end.getMonth(),
+        end.getDate()
+      );
+
+      return selected >= startDay && selected <= endDay;
     });
   }, [events, selectedDate]);
+
+  async function createEvent() {
+    try {
+      const response = await fetch("/api/events", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(eventForm),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error(data);
+        return;
+      }
+
+      setEvents((prev) => [...prev, data]);
+
+      setEventForm({
+        title: "",
+        details: "",
+        category: "",
+        startDate: "",
+        dueDate: "",
+      });
+
+      setShowEventModal(false);
+    } catch (error) {
+      console.error(error);
+    }
+  }
 
   return (
     <div
@@ -95,9 +155,21 @@ export default function CalendarPage() {
         boxShadow: "6px 8px 0 rgba(0,0,0,0.12)",
       }}
     >
-      <h1 className="text-2xl font-semibold text-zinc-900 mb-6">
+      <div className="flex justify-between items-center mb-6">
+      <h1 className="text-2xl font-semibold text-zinc-900">
         Calendar
       </h1>
+
+      <button
+        onClick={() => setShowEventModal(true)}
+        className="px-4 py-2 bg-black text-white"
+        style={{
+          borderRadius: "4px",
+        }}
+      >
+        Add Event
+      </button>
+    </div>
 
       {/* Calendar */}
       <Calendar
@@ -122,14 +194,32 @@ export default function CalendarPage() {
 
           /* Events on day */
           const dayEvents = events.filter((event) => {
-            const start = new Date(event.startDate);
+          const start = new Date(event.startDate);
 
-            return (
-              start.getDate() === date.getDate() &&
-              start.getMonth() === date.getMonth() &&
-              start.getFullYear() === date.getFullYear()
-            );
-          });
+          const end = event.dueDate
+            ? new Date(event.dueDate)
+            : start;
+
+          const currentDay = new Date(
+            date.getFullYear(),
+            date.getMonth(),
+            date.getDate()
+          );
+
+          const startDay = new Date(
+            start.getFullYear(),
+            start.getMonth(),
+            start.getDate()
+          );
+
+          const endDay = new Date(
+            end.getFullYear(),
+            end.getMonth(),
+            end.getDate()
+          );
+
+          return currentDay >= startDay && currentDay <= endDay;
+        });
 
           if (dayTasks.length === 0 && dayEvents.length === 0) {
             return null;
@@ -327,12 +417,26 @@ export default function CalendarPage() {
                     )}
 
                     <p className="text-sm text-zinc-500 mt-2">
-                      Starts:{" "}
-                      {new Date(event.startDate).toLocaleTimeString([], {
+                    Start:{" "}
+                    {new Date(event.startDate).toLocaleString([], {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+
+                  {event.dueDate && (
+                    <p className="text-sm text-zinc-500 mt-1">
+                      End:{" "}
+                      {new Date(event.dueDate).toLocaleString([], {
+                        month: "short",
+                        day: "numeric",
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
                     </p>
+                  )}
 
                     {event.details && (
                       <p className="text-sm text-zinc-700 mt-3">
@@ -346,6 +450,119 @@ export default function CalendarPage() {
           </>
         )}
       </div>
+      {showEventModal && (
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.4)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1000,
+        }}
+      >
+        <div
+          className="bg-white p-6 w-full max-w-md"
+          style={{
+            border: "3px solid #111",
+            borderRadius: "6px",
+          }}
+        >
+          <h2 className="text-xl font-semibold mb-4">
+            Add Event
+          </h2>
+
+          <input
+            type="text"
+            placeholder="Title"
+            value={eventForm.title}
+            onChange={(e) =>
+              setEventForm({
+                ...eventForm,
+                title: e.target.value,
+              })
+            }
+            className="w-full border p-2 mb-3"
+          />
+
+          <textarea
+            placeholder="Details"
+            value={eventForm.details}
+            onChange={(e) =>
+              setEventForm({
+                ...eventForm,
+                details: e.target.value,
+              })
+            }
+            className="w-full border p-2 mb-3"
+          />
+
+          <input
+            type="text"
+            placeholder="Category"
+            value={eventForm.category}
+            onChange={(e) =>
+              setEventForm({
+                ...eventForm,
+                category: e.target.value,
+              })
+            }
+            className="w-full border p-2 mb-3"
+          />
+
+          <label className="block text-sm mb-1">
+            Start Date
+          </label>
+
+          <input
+            type="datetime-local"
+            className="w-full border p-2 mb-3"
+            onChange={(e) =>
+              setEventForm({
+                ...eventForm,
+                startDate: new Date(
+                  e.target.value
+                ).toISOString(),
+              })
+            }
+          />
+
+          <label className="block text-sm mb-1">
+            End Date
+          </label>
+
+          <input
+            type="datetime-local"
+            className="w-full border p-2 mb-4"
+            onChange={(e) =>
+              setEventForm({
+                ...eventForm,
+                dueDate: new Date(
+                  e.target.value
+                ).toISOString(),
+              })
+            }
+          />
+
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => setShowEventModal(false)}
+              className="px-4 py-2 border"
+            >
+              Cancel
+            </button>
+
+            <button
+              onClick={createEvent}
+              className="px-4 py-2 bg-black text-white"
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </div>
   );
 }
