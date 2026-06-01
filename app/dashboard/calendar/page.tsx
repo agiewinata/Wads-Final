@@ -28,7 +28,7 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(true);
   const [showEventModal, setShowEventModal] = useState(false);
-
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [eventForm, setEventForm] = useState({
     title: "",
     details: "",
@@ -113,10 +113,18 @@ export default function CalendarPage() {
     });
   }, [events, selectedDate]);
 
-  async function createEvent() {
+  async function saveEvent() {
     try {
-      const response = await fetch("/api/events", {
-        method: "POST",
+      const url = editingEvent
+        ? `/api/events/${editingEvent.id}`
+        : "/api/events";
+
+      const method = editingEvent
+        ? "PATCH"
+        : "POST";
+
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
         },
@@ -130,7 +138,17 @@ export default function CalendarPage() {
         return;
       }
 
-      setEvents((prev) => [...prev, data]);
+      if (editingEvent) {
+        setEvents((prev) =>
+          prev.map((event) =>
+            event.id === data.id
+              ? data
+              : event
+          )
+        );
+      } else {
+        setEvents((prev) => [...prev, data]);
+      }
 
       setEventForm({
         title: "",
@@ -140,6 +158,7 @@ export default function CalendarPage() {
         dueDate: "",
       });
 
+      setEditingEvent(null);
       setShowEventModal(false);
     } catch (error) {
       console.error(error);
@@ -161,7 +180,19 @@ export default function CalendarPage() {
       </h1>
 
       <button
-        onClick={() => setShowEventModal(true)}
+        onClick={() => {
+          setEditingEvent(null);
+
+          setEventForm({
+            title: "",
+            details: "",
+            category: "",
+            startDate: "",
+            dueDate: "",
+          });
+
+          setShowEventModal(true);
+        }}
         className="px-4 py-2 bg-black text-white"
         style={{
           borderRadius: "4px",
@@ -443,6 +474,33 @@ export default function CalendarPage() {
                         {event.details}
                       </p>
                     )}
+                    <button
+                      onClick={() => {
+                        setEditingEvent(event);
+
+                        setEventForm({
+                          title: event.title,
+                          details: event.details ?? "",
+                          category: event.category ?? "",
+                          startDate: event.startDate,
+                          dueDate: event.dueDate ?? "",
+                        });
+
+                        setShowEventModal(true);
+                      }}
+                      style={{
+                        padding: "4px 12px",
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        background: "#d4d4d8",
+                        color: "#111",
+                        border: "2px solid #111",
+                        borderRadius: "4px 6px 4px 6px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Edit
+                    </button>
                   </div>
                 ))}
               </div>
@@ -470,7 +528,7 @@ export default function CalendarPage() {
           }}
         >
           <h2 className="text-xl font-semibold mb-4">
-            Add Event
+            {editingEvent ? "Edit Event" : "Add Event"}
           </h2>
 
           <input
@@ -554,7 +612,7 @@ export default function CalendarPage() {
             </button>
 
             <button
-              onClick={createEvent}
+              onClick={saveEvent}
               className="px-4 py-2 bg-black text-white"
             >
               Save
