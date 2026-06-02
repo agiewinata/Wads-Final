@@ -114,6 +114,28 @@ export default function CalendarPage() {
   }, [events, selectedDate]);
 
   async function saveEvent() {
+    if (!eventForm.title.trim()) {
+      alert("Title is required");
+      return;
+    }
+
+    if (!eventForm.startDate) {
+      alert("Start date is required");
+      return;
+    }
+
+    if (!eventForm.dueDate) {
+      alert("End date is required");
+      return;
+    }
+
+    if (
+      new Date(eventForm.dueDate) <
+      new Date(eventForm.startDate)
+    ) {
+      alert("End date must be after start date");
+      return;
+    }
     try {
       const url = editingEvent
         ? `/api/events/${editingEvent.id}`
