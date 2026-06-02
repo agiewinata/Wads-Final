@@ -113,6 +113,32 @@ export default function CalendarPage() {
     });
   }, [events, selectedDate]);
 
+  async function deleteEvent(id: string) {
+    const confirmed = window.confirm(
+      "Delete this event?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(`/api/events/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        alert("Failed to delete event");
+        return;
+      }
+
+      setEvents((prev) =>
+        prev.filter((event) => event.id !== id)
+      );
+    } catch (error) {
+      console.error(error);
+      alert("Failed to delete event");
+    }
+  }
+
   async function saveEvent() {
     if (!eventForm.title.trim()) {
       alert("Title is required");
@@ -522,6 +548,17 @@ export default function CalendarPage() {
                       }}
                     >
                       Edit
+                    </button>
+                    <button
+                      onClick={() => deleteEvent(event.id)}
+                      className="px-3 py-1 text-sm text-white"
+                      style={{
+                        background: "#dc2626",
+                        border: "2px solid #111",
+                        borderRadius: "4px",
+                      }}
+                    >
+                      Delete
                     </button>
                   </div>
                 ))}
