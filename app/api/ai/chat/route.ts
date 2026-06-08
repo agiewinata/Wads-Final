@@ -10,8 +10,9 @@ export async function POST(req: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { messages } = await req.json() as {
+  const { messages, images } = await req.json() as {
     messages: { role: "user" | "assistant"; content: string }[];
+    images?: string[]; // raw base64 strings (no data-URL prefix), attached to last user message
   };
 
   const now   = new Date();
@@ -45,9 +46,17 @@ How to respond:
 - Give specific, genuine affirmations — not generic praise.
 - Be like a kind, smart friend. Never preachy.`;
 
+  // Use a vision-capable model when images are attached
+  const model = images?.length ? "gemma4:e4b" : OLLAMA_MODEL;
+
+  // Attach images to the last user message
   const ollamaMessages = [
     { role: "system", content: systemPrompt },
-    ...messages,
+    ...messages.map((m, i) =>
+      i === messages.length - 1 && images?.length
+        ? { ...m, images }
+        : m
+    ),
   ];
 
   try {
@@ -55,7 +64,7 @@ How to respond:
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model:    OLLAMA_MODEL,
+        model,
         messages: ollamaMessages,
         stream:   true,
       }),
