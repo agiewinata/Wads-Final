@@ -3,18 +3,10 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 
-const MODEL   = process.env.GOOGLE_AI_MODEL   ?? "gemini-2.0-flash";
-const API_KEY = process.env.GOOGLE_AI_API_KEY ?? "";
-const BASE    = "https://generativelanguage.googleapis.com/v1beta/models";
+const OLLAMA_BASE  = process.env.OLLAMA_BASE  ?? "https://ollama.csbihub.id";
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "llama3.1:8b";
 
 export async function POST(req: NextRequest) {
-  if (!API_KEY) {
-    return NextResponse.json(
-      { error: "GOOGLE_AI_API_KEY is not set in .env.local" },
-      { status: 500 },
-    );
-  }
-
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -22,10 +14,10 @@ export async function POST(req: NextRequest) {
     messages: { role: "user" | "assistant"; content: string }[];
   };
 
-  const now     = new Date();
-  const tasks   = await prisma.task.findMany({
+  const now   = new Date();
+  const tasks = await prisma.task.findMany({
     where:  { userId: session.user.id },
-    select: { title: true, subject: true, category: true, completed: true, dueDate: true },
+    select: { title: true, category: true, completed: true, dueDate: true },
   });
 
   const overdue   = tasks.filter(t => !t.completed && t.dueDate && new Date(t.dueDate) < now);
@@ -36,9 +28,8 @@ export async function POST(req: NextRequest) {
   });
   const completed = tasks.filter(t => t.completed);
   const active    = tasks.filter(t => !t.completed);
-  const subjects  = [...new Set(tasks.map(t => t.subject).filter(Boolean))];
 
-  const systemInstruction = `You are a warm, supportive study assistant for ${session.user.name ?? "a student"}.
+  const systemPrompt = `You are a warm, supportive study assistant for ${session.user.name ?? "a student"}.
 
 Current task snapshot:
 - Total tasks: ${tasks.length}
@@ -46,7 +37,6 @@ Current task snapshot:
 - Due in the next 3 days: ${dueSoon.length}
 - Active: ${active.length}
 - Completed: ${completed.length}
-- Subjects: ${subjects.length ? subjects.join(", ") : "not specified"}
 
 How to respond:
 - Keep responses to 2-3 sentences unless the user asks for more detail.
@@ -55,32 +45,29 @@ How to respond:
 - Give specific, genuine affirmations — not generic praise.
 - Be like a kind, smart friend. Never preachy.`;
 
-  const contents = messages.map(m => ({
-    role:  m.role === "assistant" ? "model" : "user",
-    parts: [{ text: m.content }],
-  }));
+  const ollamaMessages = [
+    { role: "system", content: systemPrompt },
+    ...messages,
+  ];
 
   try {
-    const googleRes = await fetch(
-      `${BASE}/${MODEL}:streamGenerateContent?alt=sse&key=${API_KEY}`,
-      {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemInstruction }] },
-          contents,
-          generationConfig: { maxOutputTokens: 512 },
-        }),
-      },
-    );
+    const ollamaRes = await fetch(`${OLLAMA_BASE}/api/chat`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model:    OLLAMA_MODEL,
+        messages: ollamaMessages,
+        stream:   true,
+      }),
+    });
 
-    if (!googleRes.ok || !googleRes.body) {
-      const errText = await googleRes.text().catch(() => "unknown");
-      return NextResponse.json({ error: `Google AI error: ${errText}` }, { status: 502 });
+    if (!ollamaRes.ok || !ollamaRes.body) {
+      const errText = await ollamaRes.text().catch(() => "unknown");
+      return NextResponse.json({ error: `Ollama error: ${errText}` }, { status: 502 });
     }
 
-    // Transform Google's SSE → plain text stream so the client just appends chunks
-    const upstream = googleRes.body.getReader();
+    // Ollama streams NDJSON — each line is {"message":{"content":"..."},"done":false}
+    const upstream = ollamaRes.body.getReader();
     const enc      = new TextEncoder();
 
     const stream = new ReadableStream({
@@ -97,14 +84,14 @@ How to respond:
           buffer = lines.pop() ?? "";
 
           for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-            const jsonStr = line.slice(6).trim();
-            if (!jsonStr || jsonStr === "[DONE]") continue;
+            const trimmed = line.trim();
+            if (!trimmed) continue;
             try {
-              const chunk = JSON.parse(jsonStr) as {
-                candidates?: { content?: { parts?: { text?: string }[] } }[];
+              const chunk = JSON.parse(trimmed) as {
+                message?: { content?: string };
+                done?: boolean;
               };
-              const text = chunk.candidates?.[0]?.content?.parts?.[0]?.text;
+              const text = chunk.message?.content;
               if (text) controller.enqueue(enc.encode(text));
             } catch { /* skip malformed chunk */ }
           }
@@ -119,7 +106,7 @@ How to respond:
     });
   } catch {
     return NextResponse.json(
-      { error: "Could not reach Google AI. Check your GOOGLE_AI_API_KEY." },
+      { error: "Could not reach Ollama. Check that the server is running." },
       { status: 502 },
     );
   }
