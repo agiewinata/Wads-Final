@@ -8,14 +8,18 @@ interface Task {
   id: string;
   title: string;
   dueDate: string | null;
+  priority?: number | null;
+  category?: string | null;
   completed: boolean;
 }
 
 interface Event {
   id: string;
   title: string;
+  details?: string | null;
   startDate: string;
   dueDate?: string | null;
+  category?: string | null;
 }
 
 export default function DashboardCalendar() {
@@ -24,30 +28,28 @@ export default function DashboardCalendar() {
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   useEffect(() => {
-    async function loadData() {
+    async function fetchData() {
       try {
         const [taskRes, eventRes] = await Promise.all([
           fetch("/api/tasks"),
           fetch("/api/events"),
         ]);
 
-        if (taskRes.ok) {
-          setTasks(await taskRes.json());
-        }
+        const taskData = await taskRes.json();
+        const eventData = await eventRes.json();
 
-        if (eventRes.ok) {
-          setEvents(await eventRes.json());
-        }
-      } catch (error) {
-        console.error(error);
+        if (taskRes.ok) setTasks(taskData);
+        if (eventRes.ok) setEvents(eventData);
+      } catch (err) {
+        console.error(err);
       }
     }
 
-    loadData();
+    fetchData();
   }, []);
 
-  const selectedItems = useMemo(() => {
-    const tasksForDay = tasks.filter((task) => {
+  const selectedTasks = useMemo(() => {
+    return tasks.filter((task) => {
       if (!task.dueDate) return false;
 
       const due = new Date(task.dueDate);
@@ -58,8 +60,10 @@ export default function DashboardCalendar() {
         due.getFullYear() === selectedDate.getFullYear()
       );
     });
+  }, [tasks, selectedDate]);
 
-    const eventsForDay = events.filter((event) => {
+  const selectedEvents = useMemo(() => {
+    return events.filter((event) => {
       const start = new Date(event.startDate);
       const end = event.dueDate
         ? new Date(event.dueDate)
@@ -85,20 +89,17 @@ export default function DashboardCalendar() {
 
       return selected >= startDay && selected <= endDay;
     });
-
-    return { tasksForDay, eventsForDay };
-  }, [tasks, events, selectedDate]);
+  }, [events, selectedDate]);
 
   return (
     <div
-      className="bg-white p-4"
+      className="bg-white p-4 h-full overflow-auto"
       style={{
         border: "3px solid #111",
         borderRadius: "6px",
-        boxShadow: "6px 8px 0 rgba(0,0,0,0.12)",
       }}
     >
-      <h2 className="text-lg font-semibold mb-4">
+      <h2 className="font-semibold text-lg mb-4">
         Calendar
       </h2>
 
@@ -106,6 +107,77 @@ export default function DashboardCalendar() {
         value={selectedDate}
         onChange={(value) => setSelectedDate(value as Date)}
         className="border-0 w-full"
+        tileContent={({ date, view }) => {
+          if (view !== "month") return null;
+
+          const hasTask = tasks.some((task) => {
+            if (!task.dueDate) return false;
+
+            const due = new Date(task.dueDate);
+
+            return (
+              due.getDate() === date.getDate() &&
+              due.getMonth() === date.getMonth() &&
+              due.getFullYear() === date.getFullYear()
+            );
+          });
+
+          const hasEvent = events.some((event) => {
+            const start = new Date(event.startDate);
+            const end = event.dueDate
+              ? new Date(event.dueDate)
+              : start;
+
+            const current = new Date(
+              date.getFullYear(),
+              date.getMonth(),
+              date.getDate()
+            );
+
+            return (
+              current >=
+                new Date(
+                  start.getFullYear(),
+                  start.getMonth(),
+                  start.getDate()
+                ) &&
+              current <=
+                new Date(
+                  end.getFullYear(),
+                  end.getMonth(),
+                  end.getDate()
+                )
+            );
+          });
+
+          if (!hasTask && !hasEvent) return null;
+
+          return (
+            <div className="mt-1 flex justify-center gap-1">
+              {hasTask && (
+                <div
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "999px",
+                    background: "#111",
+                  }}
+                />
+              )}
+
+              {hasEvent && (
+                <div
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "999px",
+                    background: "#2563eb",
+                  }}
+                />
+              )}
+            </div>
+          );
+        }}
       />
 
       <div className="mt-4">
@@ -113,24 +185,32 @@ export default function DashboardCalendar() {
           {selectedDate.toDateString()}
         </h3>
 
-        {selectedItems.tasksForDay.map((task) => (
-          <div key={task.id} className="text-sm">
-            📋 {task.title}
-          </div>
-        ))}
+        <div className="space-y-2">
+          {selectedTasks.slice(0, 3).map((task) => (
+            <div
+              key={task.id}
+              className="text-sm p-2 bg-zinc-100 rounded"
+            >
+              📋 {task.title}
+            </div>
+          ))}
 
-        {selectedItems.eventsForDay.map((event) => (
-          <div key={event.id} className="text-sm">
-            📅 {event.title}
-          </div>
-        ))}
+          {selectedEvents.slice(0, 3).map((event) => (
+            <div
+              key={event.id}
+              className="text-sm p-2 bg-blue-50 rounded"
+            >
+              📅 {event.title}
+            </div>
+          ))}
 
-        {selectedItems.tasksForDay.length === 0 &&
-          selectedItems.eventsForDay.length === 0 && (
-            <p className="text-sm text-zinc-500">
-              No items
-            </p>
-          )}
+          {selectedTasks.length === 0 &&
+            selectedEvents.length === 0 && (
+              <p className="text-sm text-zinc-500">
+                No items for this date.
+              </p>
+            )}
+        </div>
       </div>
     </div>
   );
