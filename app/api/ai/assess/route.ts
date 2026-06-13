@@ -58,13 +58,14 @@ If show=false: set message to empty string.
 Respond ONLY with valid JSON, no markdown fences:
 {"show": true or false, "message": "string"}`;
   } else {
-    prompt = `You are generating a personalised daily affirmation for a student.
+    prompt = `You are generating a personalised daily greeting and affirmation for a student.
 
 ${taskSummary}
 
-Write a warm, specific 2-sentence affirmation for ${name}. Rules:
+Write a warm, specific 2-sentence greeting for ${name}. Rules:
+- Always mention how many tasks are due in the next 3 days (${dueSoon.length}) — phrase it naturally, e.g. "You have ${dueSoon.length} task${dueSoon.length === 1 ? "" : "s"} coming up soon."
 - Reference their actual situation: acknowledge completions, encourage about active load.
-- If many overdue tasks, acknowledge gently and encourage starting small.
+- If there are overdue tasks, acknowledge gently and encourage starting small.
 - Address them by name (${name}).
 - Do NOT be generic.
 
