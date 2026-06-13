@@ -64,8 +64,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static    ./.next/static
 
 # Full node_modules from builder (needed for prisma migrate deploy at startup)
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/prisma       ./prisma
+COPY --from=builder /app/node_modules    ./node_modules
+COPY --from=builder /app/prisma          ./prisma
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 
 COPY --chown=nextjs:nodejs entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
