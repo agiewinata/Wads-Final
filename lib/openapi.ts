@@ -1,6 +1,4 @@
-import type { OpenAPIV3 } from "openapi-types";
-
-const spec: OpenAPIV3.Document = {
+const spec = {
   openapi: "3.0.0",
   info: {
     title: "WADS Task Management API",

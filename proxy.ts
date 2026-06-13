@@ -5,7 +5,6 @@ const SECURITY_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy":        "strict-origin-when-cross-origin",
   "Permissions-Policy":     "camera=(), microphone=(), geolocation=()",
-  // next/image uses eval in dev; unsafe-inline needed for Tailwind injected styles
   "Content-Security-Policy": [
     "default-src 'self'",
     "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
@@ -17,14 +16,13 @@ const SECURITY_HEADERS: Record<string, string> = {
   ].join("; "),
 };
 
-export function middleware(req: NextRequest): NextResponse {
+export function proxy(req: NextRequest): NextResponse {
   const { pathname } = req.nextUrl;
   const isApiRoute  = pathname.startsWith("/api/");
-  // Better-Auth manages its own CSRF for auth endpoints
   const isAuthRoute = pathname.startsWith("/api/auth");
   const isMutating  = ["POST", "PUT", "PATCH", "DELETE"].includes(req.method);
 
-  // ── CSRF: double-submit cookie validation ─────────────────────────────────
+  // CSRF: double-submit cookie validation
   if (isMutating && isApiRoute && !isAuthRoute) {
     const cookieToken = req.cookies.get("csrf-token")?.value;
     const headerToken = req.headers.get("x-csrf-token");
@@ -39,19 +37,19 @@ export function middleware(req: NextRequest): NextResponse {
 
   const res = NextResponse.next();
 
-  // ── Security headers ──────────────────────────────────────────────────────
+  // Security headers
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
     res.headers.set(name, value);
   }
 
-  // ── CSRF cookie — set once per browser session, absent on fresh visits ────
+  // Set CSRF cookie once per browser session
   if (!req.cookies.has("csrf-token")) {
     res.cookies.set("csrf-token", crypto.randomUUID(), {
-      httpOnly: false,   // must be JS-readable for the double-submit pattern
+      httpOnly: false,
       sameSite: "strict",
       secure:   process.env.NODE_ENV === "production",
       path:     "/",
-      maxAge:   60 * 60 * 24, // 24 h
+      maxAge:   60 * 60 * 24,
     });
   }
 
