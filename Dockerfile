@@ -16,6 +16,12 @@ COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Placeholder env vars so Prisma and Better-Auth don't throw at module evaluation
+# during the build. Real values are injected at runtime via docker-compose.
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost/placeholder"
+ENV BETTER_AUTH_SECRET="build-time-placeholder"
+ENV BETTER_AUTH_URL="http://localhost:3000"
+
 # Generate Prisma client, then build Next.js with standalone output
 RUN npx prisma generate
 RUN npm run build
