@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { limits } from "@/lib/rate-limit";
 
 const OLLAMA_BASE  = process.env.OLLAMA_BASE  ?? "https://ollama.csbihub.id";
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "llama3.1:8b";
@@ -9,6 +10,7 @@ const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "llama3.1:8b";
 export async function POST(req: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!limits.ai(session.user.id)) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   const { messages, images } = await req.json() as {
     messages: { role: "user" | "assistant"; content: string }[];

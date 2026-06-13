@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { sanitizeText } from "@/lib/sanitize";
 
 const createSchema = z.object({ name: z.string().min(1).max(32) });
 
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
   if (existing) return NextResponse.json({ error: "Already exists" }, { status: 409 });
 
   const category = await prisma.userCategory.create({
-    data: { name: parsed.data.name, userId: session.user.id },
+    data: { name: sanitizeText(parsed.data.name), userId: session.user.id },
   });
   return NextResponse.json(category, { status: 201 });
 }

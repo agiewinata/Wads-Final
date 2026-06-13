@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { sanitizeText, sanitizeOptional } from "@/lib/sanitize";
 
 const createSchema = z.object({
   title:    z.string().min(1),
@@ -43,8 +44,8 @@ export async function POST(req: NextRequest) {
 
   const task = await prisma.task.create({
     data: {
-      title,
-      details,
+      title:   sanitizeText(title),
+      details: sanitizeOptional(details),
       priority,
       dueDate:  dueDate ? new Date(dueDate) : null,
       category: category || null,

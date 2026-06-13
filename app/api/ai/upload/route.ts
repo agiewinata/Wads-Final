@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { limits } from "@/lib/rate-limit";
 
 const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 
 export async function POST(req: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!limits.upload(session.user.id)) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
