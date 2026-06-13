@@ -151,7 +151,9 @@ export default function AnalyticsPage() {
     setRecLoading(false);
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchData(range); }, [fetchData, range]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchRecs(); },     [fetchRecs]);
 
   const handleRangeChange = (r: RangeKey) => {

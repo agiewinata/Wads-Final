@@ -14,6 +14,7 @@ type ScreenMode = "timer" | "settings";
 const REWIND_DURATION = 1000;
 const SNAP_DELAY = 100;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const TimerContext = createContext<any>(null);
 
 export function TimerProvider({
@@ -84,6 +85,7 @@ export function TimerProvider({
     const savedSettings = localStorage.getItem(storageKey);
 
     if (!savedSettings) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setHasLoadedSettings(true);
       return;
     }
@@ -115,7 +117,9 @@ export function TimerProvider({
         ? shortBreakMinutes
         : longBreakMinutes;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSecondsLeft(minutes * 60);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, hasLoadedSettings]);
 
   useEffect(() => {
@@ -139,6 +143,7 @@ export function TimerProvider({
 
   function playAlarmSound() {
     const AudioContextClass =
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       window.AudioContext || (window as any).webkitAudioContext;
 
     if (!AudioContextClass) return;

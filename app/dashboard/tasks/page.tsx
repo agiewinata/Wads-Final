@@ -135,6 +135,7 @@ export default function TasksPage() {
     if (res.ok) setUserCategories(await res.json());
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchTasks(); fetchCategories(); }, [fetchTasks, fetchCategories]);
 
   const visible = tasks
@@ -290,7 +291,7 @@ export default function TasksPage() {
   }
 
   function toggleSelect(id: string) {
-    setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+    setSelected(prev => { const n = new Set(prev); if (n.has(id)) { n.delete(id) } else { n.add(id) } return n; });
   }
 
   const rows = Math.max(visible.length, MIN_ROWS);

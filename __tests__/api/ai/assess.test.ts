@@ -20,7 +20,6 @@ const FAKE_SESSION = { user: { id: 'u1', name: 'Sam' } }
 
 const now = new Date()
 const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
 
 function task(overrides: Record<string, unknown> = {}) {
   return { title: 'Task', category: null, completed: false, dueDate: null, ...overrides }

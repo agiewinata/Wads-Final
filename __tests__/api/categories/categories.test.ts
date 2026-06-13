@@ -34,10 +34,6 @@ const mockUpdateMany  = jest.mocked(prisma.task.updateMany)
 const FAKE_SESSION  = { user: { id: 'u1' } }
 const FAKE_CATEGORY = { id: 'c1', name: 'Study', userId: 'u1', createdAt: new Date() }
 
-function makeGetReq() {
-  return new NextRequest('http://localhost/api/categories')
-}
-
 function makePostReq(body: object) {
   return new NextRequest('http://localhost/api/categories', {
     method: 'POST',

@@ -11,6 +11,7 @@ jest.mock('next/headers', () => ({
 jest.mock('pdf-parse', () => jest.fn())
 
 const mockGetSession = jest.mocked(auth.api.getSession)
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const mockPdfParse = require('pdf-parse') as jest.Mock
 
 const FAKE_SESSION = { user: { id: 'u1', name: 'Alex' } }

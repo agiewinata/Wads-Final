@@ -93,7 +93,7 @@ export default function ForgotPasswordPage() {
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col gap-8">
               <p className="text-sm text-zinc-500 -mb-2">
-                Enter your email and we'll send you a reset link.
+                Enter your email and we&apos;ll send you a reset link.
               </p>
 
               <input

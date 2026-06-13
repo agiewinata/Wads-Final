@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Paperclip, ChevronRight } from "lucide-react";
 import { useSession } from "@/lib/auth-client";
 import { csrfFetch } from "@/lib/csrf-client";
@@ -140,7 +140,7 @@ export default function AIPage() {
   const fileRef   = useRef<HTMLInputElement>(null);
 
   const active   = sessions.find(s => s.id === activeId) ?? sessions[0];
-  const messages = active?.messages ?? [];
+  const messages = useMemo(() => active?.messages ?? [], [active]);
 
   useEffect(() => {
     try { localStorage.setItem("ai-sessions", JSON.stringify(sessions)); } catch {}
@@ -311,6 +311,7 @@ export default function AIPage() {
 
                     {/* ── Attachment — above the bubble ── */}
                     {msg.imgThumb && (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={msg.imgThumb}
                         alt={msg.fileName}
@@ -385,6 +386,7 @@ export default function AIPage() {
               flexShrink: 0,
             }}>
               {attachment.kind === "image" ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={attachment.thumb}
                   alt={attachment.name}
