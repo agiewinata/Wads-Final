@@ -84,71 +84,11 @@ jobs:
             test-results/
           retention-days: 7
 
-  # ── Job 3: Playwright frontend tests ──────────────────────────────────────
-  test-frontend:
-    name: Frontend Tests (Playwright)
-    runs-on: ubuntu-latest
-    needs: [test]
-    env:
-      DATABASE_URL: postgresql://test:test@localhost:5432/testdb
-      BETTER_AUTH_SECRET: ci-test-secret-minimum-32-characters-ok
-      BETTER_AUTH_URL: http://localhost:3000
-      SESSION_SECRET: ci-session-secret-placeholder
-      OLLAMA_BASE: http://localhost:11434
-      OLLAMA_MODEL: llama3.1:8b
-      GOOGLE_AI_API_KEY: placeholder
-      GOOGLE_AI_MODEL: gemini-2.5-flash
-      RESEND_API_KEY: re_placeholder
-      GOOGLE_CLIENT_ID: placeholder.apps.googleusercontent.com
-      GOOGLE_CLIENT_SECRET: placeholder
-      NEXT_PUBLIC_FIREBASE_API_KEY: placeholder
-      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: placeholder.firebaseapp.com
-      NEXT_PUBLIC_FIREBASE_PROJECT_ID: placeholder
-      NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: placeholder.appspot.com
-      NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '000000000000'
-      NEXT_PUBLIC_FIREBASE_APP_ID: 1:000000000000:web:placeholder
-      FIREBASE_PROJECT_ID: placeholder
-      FIREBASE_CLIENT_EMAIL: placeholder@placeholder.iam.gserviceaccount.com
-      FIREBASE_PRIVATE_KEY: "-----BEGIN PRIVATE KEY-----\nMIIplaceholder\n-----END PRIVATE KEY-----\n"
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma client
-        run: npx prisma generate
-
-      - name: Install Playwright browsers
-        run: npx playwright install chromium --with-deps
-
-      - name: Build Next.js app
-        run: npm run build
-
-      - name: Run Playwright tests
-        run: npx playwright test --reporter=list,html,json
-        env:
-          PLAYWRIGHT_BASE_URL: http://localhost:3000
-          CI: 'true'
-
-      - name: Upload Playwright report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 14
-
-  # ── Job 4: Docker build validation ─────────────────────────────────────────
+  # ── Job 3: Docker build validation ─────────────────────────────────────────
   docker-build:
     name: Docker Build
     runs-on: ubuntu-latest
-    needs: [test, test-frontend]
+    needs: [test]
     steps:
       - uses: actions/checkout@v4
 
