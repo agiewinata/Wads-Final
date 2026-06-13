@@ -17,14 +17,13 @@ A full-stack productivity web application that helps students manage tasks, trac
 3. [Tech Stack](#tech-stack)
 4. [Architecture](#architecture)
 5. [Getting Started](#getting-started)
-6. [Environment Variables](#environment-variables)
-7. [Running the App](#running-the-app)
-8. [Running Tests](#running-tests)
-9. [Docker](#docker)
-10. [CI/CD Pipeline](#cicd-pipeline)
-11. [API Reference](#api-reference)
-12. [Security](#security)
-13. [Deployment](#deployment)
+6. [Running the App](#running-the-app)
+7. [Running Tests](#running-tests)
+8. [Docker](#docker)
+9. [CI/CD Pipeline](#cicd-pipeline)
+10. [API Reference](#api-reference)
+11. [Security](#security)
+12. [Deployment](#deployment)
 
 ---
 
@@ -167,45 +166,6 @@ git clone https://github.com/agiewinata/Wads-Final.git
 cd Wads-Final
 npm install
 ```
-
----
-
-## Environment Variables
-
-Create a `.env` file at the project root. All variables are required unless marked optional.
-
-```env
-# ── Database ────────────────────────────────────────────────────
-DATABASE_URL=postgresql://user:password@host/dbname?sslmode=require
-
-# ── Better-Auth ─────────────────────────────────────────────────
-BETTER_AUTH_SECRET=your-32-char-minimum-secret-here
-BETTER_AUTH_URL=http://localhost:3000
-
-# ── Google OAuth (optional — disables Google sign-in if absent) ─
-GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-
-# ── Ollama ──────────────────────────────────────────────────────
-OLLAMA_BASE=http://localhost:11434
-OLLAMA_MODEL=llama3.1:8b
-
-# ── Resend (optional — disables password-reset email if absent) ─
-RESEND_API_KEY=re_your_resend_api_key
-
-# ── Firebase (optional — push notifications) ────────────────────
-NEXT_PUBLIC_FIREBASE_API_KEY=
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
-NEXT_PUBLIC_FIREBASE_APP_ID=
-FIREBASE_PROJECT_ID=
-FIREBASE_CLIENT_EMAIL=
-FIREBASE_PRIVATE_KEY=
-```
-
-> `.env` is in `.gitignore` and is **never** committed to the repository.
 
 ---
 
