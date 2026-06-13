@@ -21,6 +21,22 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost/placeholder"
 ENV BETTER_AUTH_SECRET="build-time-placeholder"
 ENV BETTER_AUTH_URL="http://localhost:3000"
+ENV SESSION_SECRET="build-time-placeholder"
+ENV NEXT_PUBLIC_APP_URL="http://localhost:3000"
+ENV RESEND_API_KEY="re_placeholder"
+ENV GOOGLE_CLIENT_ID="placeholder.apps.googleusercontent.com"
+ENV GOOGLE_CLIENT_SECRET="placeholder"
+ENV NEXT_PUBLIC_FIREBASE_API_KEY="placeholder"
+ENV NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="placeholder.firebaseapp.com"
+ENV NEXT_PUBLIC_FIREBASE_PROJECT_ID="placeholder"
+ENV NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="placeholder.appspot.com"
+ENV NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="000000000000"
+ENV NEXT_PUBLIC_FIREBASE_APP_ID="1:000000000000:web:placeholder"
+ENV FIREBASE_PROJECT_ID="placeholder"
+ENV FIREBASE_CLIENT_EMAIL="placeholder@placeholder.iam.gserviceaccount.com"
+ENV FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQC7placeholder\n-----END PRIVATE KEY-----\n"
+ENV GOOGLE_AI_API_KEY="placeholder"
+ENV GOOGLE_AI_MODEL="gemini-2.5-flash"
 
 # Generate Prisma client, then build Next.js with standalone output
 RUN npx prisma generate
