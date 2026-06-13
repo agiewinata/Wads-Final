@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
+import { csrfFetch } from "@/lib/csrf-client";
 
 interface Task {
   id: string;
@@ -121,7 +122,7 @@ export default function CalendarPage() {
     if (!confirmed) return;
 
     try {
-      const response = await fetch(`/api/events/${id}`, {
+      const response = await csrfFetch(`/api/events/${id}`, {
         method: "DELETE",
       });
 
@@ -171,7 +172,7 @@ export default function CalendarPage() {
         ? "PATCH"
         : "POST";
 
-      const response = await fetch(url, {
+      const response = await csrfFetch(url, {
         method,
         headers: {
           "Content-Type": "application/json",

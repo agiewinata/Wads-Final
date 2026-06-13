@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { csrfFetch } from "@/lib/csrf-client";
 import {
   Dialog,
   DialogContent,
@@ -191,7 +192,7 @@ export default function TasksPage() {
   async function openAdd() {
     setBurnoutLoading(true);
     try {
-      const res = await fetch("/api/ai/assess", {
+      const res = await csrfFetch("/api/ai/assess", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ type: "burnout" }),
@@ -228,7 +229,7 @@ export default function TasksPage() {
       priority: form.priority, dueDate: isoDate, category: form.category || null,
     };
     try {
-      const res = await fetch(
+      const res = await csrfFetch(
         editing ? `/api/tasks/${editing.id}` : "/api/tasks",
         { method: editing ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }
       );
@@ -239,7 +240,7 @@ export default function TasksPage() {
   }
 
   async function toggleComplete(task: Task) {
-    await fetch(`/api/tasks/${task.id}`, {
+    await csrfFetch(`/api/tasks/${task.id}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ completed: !task.completed }),
     });
@@ -248,7 +249,7 @@ export default function TasksPage() {
 
   async function deleteSelected() {
     if (selected.size) {
-      await Promise.all([...selected].map(id => fetch(`/api/tasks/${id}`, { method: "DELETE" })));
+      await Promise.all([...selected].map(id => csrfFetch(`/api/tasks/${id}`, { method: "DELETE" })));
       await fetchTasks();
     }
     setSelected(new Set());
@@ -267,7 +268,7 @@ export default function TasksPage() {
     const name = newCatName.trim();
     if (!name) return;
     setCatError("");
-    const res = await fetch("/api/categories", {
+    const res = await csrfFetch("/api/categories", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),
     });
@@ -282,7 +283,7 @@ export default function TasksPage() {
   }
 
   async function deleteCategory(id: string, name: string) {
-    await fetch(`/api/categories/${id}`, { method: "DELETE" });
+    await csrfFetch(`/api/categories/${id}`, { method: "DELETE" });
     if (activeCategory === name) setActiveCategory("ALL");
     await fetchCategories();
     await fetchTasks();
@@ -888,7 +889,7 @@ export default function TasksPage() {
                   id="completed"
                   checked={editing.completed}
                   onChange={async () => {
-                    await fetch(`/api/tasks/${editing.id}`, {
+                    await csrfFetch(`/api/tasks/${editing.id}`, {
                       method: "PATCH",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ completed: !editing.completed }),

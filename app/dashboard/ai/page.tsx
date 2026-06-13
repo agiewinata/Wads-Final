@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Paperclip, ChevronRight } from "lucide-react";
 import { useSession } from "@/lib/auth-client";
+import { csrfFetch } from "@/lib/csrf-client";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -94,7 +95,7 @@ async function streamChat(
 ): Promise<string | null> {
   let res: Response;
   try {
-    res = await fetch("/api/ai/chat", {
+    res = await csrfFetch("/api/ai/chat", {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ messages, images }),
@@ -176,7 +177,7 @@ export default function AIPage() {
       } else if (file.name.endsWith(".pdf")) {
         const form = new FormData();
         form.append("file", file);
-        const res = await fetch("/api/ai/upload", { method: "POST", body: form });
+        const res = await csrfFetch("/api/ai/upload", { method: "POST", body: form });
         if (!res.ok) { setError("Could not parse PDF."); return; }
         const { text } = await res.json() as { text: string };
         setAttachment({ kind: "doc", name: file.name, text });

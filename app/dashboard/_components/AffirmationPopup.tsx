@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { csrfFetch } from "@/lib/csrf-client";
 
 export default function AffirmationPopup() {
   const [open,    setOpen]    = useState(false);
@@ -15,7 +16,7 @@ export default function AffirmationPopup() {
     setOpen(true);
     setLoading(true);
 
-    fetch("/api/ai/assess", {
+    csrfFetch("/api/ai/assess", {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ type: "affirmation" }),

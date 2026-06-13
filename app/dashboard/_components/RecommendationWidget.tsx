@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { csrfFetch } from "@/lib/csrf-client";
 
 const CARD: React.CSSProperties = {
   background: "#fff",
@@ -18,7 +19,7 @@ export default function RecommendationWidget() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/ai/recommendations", {
+      const res = await csrfFetch("/api/ai/recommendations", {
         method: "POST",
       });
 

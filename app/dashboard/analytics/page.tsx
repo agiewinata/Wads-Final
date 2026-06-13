@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { csrfFetch } from "@/lib/csrf-client";
 import {
   PieChart,
   Pie,
@@ -142,7 +143,7 @@ export default function AnalyticsPage() {
 
   const fetchRecs = useCallback(async () => {
     setRecLoading(true);
-    const res = await fetch("/api/ai/recommendations", { method: "POST" });
+    const res = await csrfFetch("/api/ai/recommendations", { method: "POST" });
     if (res.ok) {
       const json = await res.json() as { recommendations?: string[] };
       setRecs(json.recommendations ?? []);
