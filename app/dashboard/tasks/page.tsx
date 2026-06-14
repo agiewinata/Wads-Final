@@ -122,6 +122,7 @@ export default function TasksPage() {
   const [burnoutOpen,    setBurnoutOpen]    = useState(false);
   const [burnoutMsg,     setBurnoutMsg]     = useState("");
   const [burnoutLoading, setBurnoutLoading] = useState(false);
+  const [isMobile,       setIsMobile]       = useState(false);
 
   const fetchTasks = useCallback(async () => {
     setLoading(true);
@@ -137,6 +138,13 @@ export default function TasksPage() {
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchTasks(); fetchCategories(); }, [fetchTasks, fetchCategories]);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   const visible = tasks
     .filter(t => getStatus(t) === activeStatus)
@@ -332,7 +340,7 @@ export default function TasksPage() {
       </h1>
 
       {/* ── Paper + stickers row ──────────────────────────────────────── */}
-      <div className="flex items-start gap-0">
+      <div className={isMobile ? "flex flex-col gap-3" : "flex items-start gap-0"}>
 
       {/* ── Ruled paper ─────────────────────────────────────────────────── */}
       <div
@@ -348,14 +356,17 @@ export default function TasksPage() {
         <div
           style={{
             background: "#ffffff",
-            height: LINE_H * 1.5,
+            minHeight: LINE_H * 1.5,
             flexShrink: 0,
             borderBottom: "2.5px solid #333",
             display: "flex",
+            flexWrap: "wrap",
             alignItems: "center",
             paddingLeft: 10,
             paddingRight: 16,
-            gap: 14,
+            paddingTop: 6,
+            paddingBottom: 6,
+            gap: 10,
           }}
         >
           {/* Status tabs */}
@@ -380,7 +391,7 @@ export default function TasksPage() {
                     transition: "all 0.1s",
                   }}
                 >
-                  {tab.label}
+                  {isMobile ? tab.value : tab.label}
                 </button>
               );
             })}
@@ -559,9 +570,13 @@ export default function TasksPage() {
         </div>
       </div>
 
-      {/* ── Category stickers – poke out right ──────────────────────────── */}
+      {/* ── Category stickers – right strip (desktop) / horizontal scroll (mobile) ── */}
       <div
-        style={{
+        style={isMobile ? {
+          display: "flex", flexDirection: "row", gap: 6,
+          overflowX: "auto", flexWrap: "nowrap",
+          paddingTop: 4, paddingBottom: 4, alignItems: "center",
+        } : {
           display: "flex", flexDirection: "column", gap: 6,
           marginLeft: -3, paddingTop: LINE_H * 1.5 + 12,
           position: "relative", zIndex: 10,
@@ -569,7 +584,7 @@ export default function TasksPage() {
       >
         {/* Add category button */}
         {addingCat ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingRight: 4 }}>
+          <div style={{ display: "flex", flexDirection: isMobile ? "row" : "column", gap: 4, paddingRight: isMobile ? 0 : 4, flexShrink: 0 }}>
             <input
               autoFocus
               value={newCatName}
@@ -579,9 +594,10 @@ export default function TasksPage() {
               maxLength={32}
               style={{
                 width: 100, fontSize: 11, padding: "4px 8px",
-                border: `1.5px solid ${catError ? "#e00" : "#333"}`, borderLeft: "none",
-                borderRadius: "0 5px 5px 0", outline: "none",
-                background: "#fff",
+                border: `1.5px solid ${catError ? "#e00" : "#333"}`,
+                ...(isMobile ? {} : { borderLeft: "none" }),
+                borderRadius: isMobile ? "5px" : "0 5px 5px 0",
+                outline: "none", background: "#fff",
               }}
             />
             {catError && <span style={{ fontSize: 9, color: "#e00", paddingLeft: 2 }}>{catError}</span>}
@@ -590,8 +606,10 @@ export default function TasksPage() {
               style={{
                 fontSize: 10, fontWeight: 700, padding: "3px 8px",
                 background: "#111", color: "#fff",
-                border: "1.5px solid #111", borderLeft: "none",
-                borderRadius: "0 4px 4px 0", cursor: "pointer",
+                border: "1.5px solid #111",
+                ...(isMobile ? {} : { borderLeft: "none" }),
+                borderRadius: isMobile ? "4px" : "0 4px 4px 0",
+                cursor: "pointer",
               }}
             >OK</button>
           </div>
@@ -601,12 +619,13 @@ export default function TasksPage() {
             title="Add category"
             style={{
               background: "#f4f4f4", color: "#555",
-              border: "1.5px dashed #999", borderLeft: "none",
-              borderRadius: "0 5px 5px 0",
+              border: "1.5px dashed #999",
+              ...(isMobile ? {} : { borderLeft: "none" }),
+              borderRadius: isMobile ? "4px" : "0 5px 5px 0",
               padding: "6px 14px 6px 11px",
               fontSize: 11, fontWeight: 700,
               cursor: "pointer", whiteSpace: "nowrap",
-              opacity: 0.7,
+              opacity: 0.7, flexShrink: 0,
             }}
           >
             + category
@@ -619,19 +638,20 @@ export default function TasksPage() {
             const active = activeCategory === cat.value;
             const isCustom = !["ALL", ...BUILT_IN.map(b => b.value)].includes(cat.value);
             return (
-              <div key={cat.value} style={{ position: "relative", display: "flex", alignItems: "center" }} className="group">
+              <div key={cat.value} style={{ position: "relative", display: "flex", alignItems: "center", flexShrink: 0 }} className="group">
                 <button
                   onClick={() => { setActiveCategory(cat.value); setSelected(new Set()); setDeleteMode(false); }}
                   style={{
                     background: active ? "#111" : cat.bg,
                     color: active ? "#fff" : "#333",
-                    border: "1.5px solid #333", borderLeft: "none",
-                    borderRadius: "0 5px 5px 0",
+                    border: "1.5px solid #333",
+                    ...(isMobile ? {} : { borderLeft: "none" }),
+                    borderRadius: isMobile ? "4px 6px 4px 6px" : "0 5px 5px 0",
                     padding: "6px 24px 6px 11px",
                     fontSize: 11, fontWeight: 700,
                     cursor: "pointer", whiteSpace: "nowrap", textAlign: "left",
                     opacity: active ? 1 : 0.6,
-                    transform: active ? "translateX(4px)" : "none",
+                    transform: (!isMobile && active) ? "translateX(4px)" : "none",
                     boxShadow: active ? "3px 3px 0 rgba(0,0,0,0.18)" : "1px 1px 0 rgba(0,0,0,0.08)",
                     transition: "all 0.12s ease",
                   }}
