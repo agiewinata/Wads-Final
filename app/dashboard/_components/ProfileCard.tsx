@@ -15,11 +15,10 @@ export default function ProfileCard({ name, email, createdAt }: ProfileCardProps
     .toUpperCase();
 
   // eslint-disable-next-line react-hooks/purity
+  const now = Date.now();
   const memberMonths = Math.max(
     1,
-    Math.round(
-      (Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24 * 30)
-    )
+    Math.round((now - createdAt.getTime()) / (1000 * 60 * 60 * 24 * 30))
   );
 
   const rows = [
