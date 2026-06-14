@@ -67,9 +67,6 @@ export default function DashboardGrid({ user }: Props) {
       cols={{ lg: 12, md: 12, sm: 6, xs: 4, xxs: 2 }}
       rowHeight={80}
       margin={[16, 16]}
-      isDraggable={false}
-      isResizable={false}
-      autoSize={true}
     >
       <div key="profile">
         <ProfileCard

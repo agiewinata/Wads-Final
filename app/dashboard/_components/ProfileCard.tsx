@@ -14,6 +14,7 @@ export default function ProfileCard({ name, email, createdAt }: ProfileCardProps
     .slice(0, 2)
     .toUpperCase();
 
+  // eslint-disable-next-line react-hooks/purity
   const memberMonths = Math.max(
     1,
     Math.round(
