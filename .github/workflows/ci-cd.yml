@@ -151,10 +151,10 @@ jobs:
           echo "Waiting 40 s for the app to start..."
           sleep 40
 
-          echo "Running health check against ${{ secrets.DEPLOY_URL }}/api/health"
+          echo "Running health check against http://localhost:3014/api/health"
           for i in 1 2 3 4 5; do
             STATUS=$(curl --silent --output /dev/null --write-out "%{http_code}" \
-              "${{ secrets.DEPLOY_URL }}/api/health" || true)
+              "http://localhost:3014/api/health" || true)
             echo "Attempt $i — HTTP $STATUS"
             if [ "$STATUS" = "200" ]; then
               echo "Health check passed."
