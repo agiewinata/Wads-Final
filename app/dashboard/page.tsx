@@ -10,7 +10,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <main className="p-6">
+    <main className="p-2 sm:p-4 lg:p-6">
       <DashboardGrid user={user} />
     </main>
   );

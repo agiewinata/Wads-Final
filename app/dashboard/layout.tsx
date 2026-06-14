@@ -17,7 +17,7 @@ export default async function DashboardLayout({
     <TimerProvider userId={user.id}>
       <div className="flex min-h-screen bg-zinc-100">
         <Sidebar userName={user.name} />
-        <main className="flex-1 min-w-0 p-6 overflow-auto">{children}</main>
+        <main className="flex-1 min-w-0 px-6 pb-6 pt-14 sm:pt-6 overflow-auto">{children}</main>
         <AffirmationPopup />
         <TimerPopup />
       </div>
