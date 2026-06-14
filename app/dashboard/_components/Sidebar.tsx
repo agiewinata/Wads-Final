@@ -28,6 +28,7 @@ export default function Sidebar({ userName }: { userName: string | null }) {
     return () => window.removeEventListener("resize", check);
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
   async function handleLogout() {
