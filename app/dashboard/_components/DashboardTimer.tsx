@@ -8,6 +8,7 @@ const CARD_IRR  = "4px 6px 4px 6px / 6px 4px 6px 4px";
 
 export default function DashboardTimer() {
   const [screen, setScreen] = useState<"timer" | "settings">("timer");
+  const [showNotifPopup, setShowNotifPopup] = useState(false);
 
   const {
     focusMinutes,
@@ -39,8 +40,104 @@ export default function DashboardTimer() {
         border: "3px solid #111",
         borderRadius: IRREGULAR,
         boxShadow: "6px 8px 0 rgba(0,0,0,0.12)",
+        position: "relative",
       }}
     >
+      {/* Notification permission popup */}
+      {showNotifPopup && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "rgba(0,0,0,0.45)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 10,
+            borderRadius: IRREGULAR,
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              border: "3px solid #111",
+              borderRadius: IRREGULAR,
+              boxShadow: "5px 6px 0 rgba(0,0,0,0.18)",
+              padding: "24px 20px 20px",
+              width: "calc(100% - 32px)",
+              maxWidth: 280,
+            }}
+          >
+            <div style={{ fontSize: 28, textAlign: "center", marginBottom: 10 }}>🔔</div>
+            <h3
+              style={{
+                fontSize: 16,
+                fontWeight: 800,
+                fontStyle: "italic",
+                letterSpacing: "-0.02em",
+                color: "#111",
+                textAlign: "center",
+                marginBottom: 6,
+              }}
+            >
+              Enable notifications?
+            </h3>
+            <p
+              style={{
+                fontSize: 12,
+                color: "#71717a",
+                textAlign: "center",
+                lineHeight: 1.5,
+                marginBottom: 18,
+              }}
+            >
+              Get alerted when your focus session or break ends — even if this tab is in the background.
+            </p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={() => {
+                  setShowNotifPopup(false);
+                  setIsRunning(true);
+                }}
+                style={{
+                  flex: 1,
+                  padding: "8px",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  background: "white",
+                  color: "#71717a",
+                  border: "2px solid #e4e4e7",
+                  borderRadius: CARD_IRR,
+                  cursor: "pointer",
+                }}
+              >
+                No thanks
+              </button>
+              <button
+                onClick={async () => {
+                  setShowNotifPopup(false);
+                  await requestNotificationPermission();
+                  setIsRunning(true);
+                }}
+                style={{
+                  flex: 1,
+                  padding: "8px",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  background: "#111",
+                  color: "white",
+                  border: "2px solid #111",
+                  borderRadius: CARD_IRR,
+                  cursor: "pointer",
+                }}
+              >
+                Yes, enable
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto p-5">
         {screen === "timer" ? (
           <>
@@ -204,9 +301,15 @@ export default function DashboardTimer() {
 
               {/* Play/Pause */}
               <button
-                onClick={async () => {
-                  await requestNotificationPermission();
-                  setIsRunning((prev: boolean) => !prev);
+                onClick={() => {
+                  if (
+                    typeof Notification !== "undefined" &&
+                    Notification.permission === "default"
+                  ) {
+                    setShowNotifPopup(true);
+                  } else {
+                    setIsRunning((prev: boolean) => !prev);
+                  }
                 }}
                 style={{
                   width: 58,
