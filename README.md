@@ -426,8 +426,6 @@ https://e2526-wads-b4ac-05.csbihub.id
 * Validation for event API using Zod schema
 * Input Sanitization for event creation
 
-### AI Related Work
-
 ## Student Name: Irene Angelina
 
 ### Features Implemented
@@ -444,8 +442,6 @@ https://e2526-wads-b4ac-05.csbihub.id
 - Timer persistence across page navigation (basically timer runs in the background)
 - Saved user timer settings
 
-### API Endpoints Handled
-
 ### Tests Written
 - Tested timer countdown accuracy
 - Tested focus, short break, and long break modes
@@ -460,10 +456,6 @@ https://e2526-wads-b4ac-05.csbihub.id
 - Tested dashboard drag-and-drop customization
 - Tested AI chatbot functionality
 - Tested general application navigation and integration
-
-### Security Work
-
-### AI Related Work
 
 ---
 
