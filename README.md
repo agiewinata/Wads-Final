@@ -419,9 +419,23 @@ https://e2526-wads-b4ac-05.csbihub.id
 - Audio alerts when sessions end
 - Timer persistence across page navigation (basically timer runs in the background)
 - Saved user timer settings
+
 ### API Endpoints Handled
 
 ### Tests Written
+- Tested timer countdown accuracy
+- Tested focus, short break, and long break modes
+- Tested timer settings persistence
+- Tested notification functionality
+- Tested auto-start break functionality
+- Tested page navigation persistence
+- Tested task creation, editing, and deletion
+- Tested calendar event creation
+- Tested task due date synchronization with calendar
+- Tested dashboard widgets
+- Tested dashboard drag-and-drop customization
+- Tested AI chatbot functionality
+- Tested general application navigation and integration
 
 ### Security Work
 
