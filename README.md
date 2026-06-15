@@ -405,6 +405,8 @@ https://e2526-wads-b4ac-05.csbihub.id
 ### AI Related Work
 
 ## Student Name: Irene Angelina
+
+### Features Implemented
 - Focus Session timer
 - Short Break Timer
 - Long break timer
@@ -417,9 +419,6 @@ https://e2526-wads-b4ac-05.csbihub.id
 - Audio alerts when sessions end
 - Timer persistence across page navigation (basically timer runs in the background)
 - Saved user timer settings
-
-### Features Implemented
-
 ### API Endpoints Handled
 
 ### Tests Written
