@@ -248,9 +248,13 @@ Core Entities:
 
 ## 8.2 AI Integration Flow
 
-**AI Chat Assistant:** User input(text and/or pdf file) -> send to Ollama API -> generate response -> display to user
+**AI Chat Assistant:** 
 
-**Burnout Detection, Productivity Recommendations, Daily Affirmation Generator:** system compile user task data -> send to Ollama API -> generate response -> display to user
+User input(text and/or pdf file) -> send to Ollama API -> generate response -> display to user
+
+**Burnout Detection, Productivity Recommendations, Daily Affirmation Generator:** 
+
+system compile user task data -> send to Ollama API -> generate response -> display to user
 
 ---
 
