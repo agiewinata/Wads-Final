@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DateTimePicker } from "@/app/dashboard/calendar/_components/DateTimePicker";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -44,15 +45,6 @@ function formatDate(iso: string | null) {
   if (!iso) return "";
   const d = new Date(iso);
   return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getFullYear()).slice(2)}`;
-}
-
-function toDatetimeLocal(iso: string | null) {
-  if (!iso) return { date: "", time: "" };
-  const d = new Date(iso);
-  return {
-    date: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`,
-    time: `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`,
-  };
 }
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -180,15 +172,8 @@ export default function TasksPage() {
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
-  function cycleSort() {
-    const fields: SortField[] = ["createdAt", "dueDate", "title", "priority"];
-    const idx = fields.indexOf(sortField);
-    if (idx === fields.length - 1) {
-      setSortField(fields[0]);
-      setSortDir(d => d === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(fields[idx + 1]);
-    }
+  function toggleSortDir() {
+    setSortDir(d => d === "asc" ? "desc" : "asc");
   }
 
   function doOpenAdd() {
@@ -222,17 +207,14 @@ export default function TasksPage() {
 
   function openEdit(task: Task) {
     setEditing(task);
-    const { date } = toDatetimeLocal(task.dueDate);
-    setForm({ title: task.title, details: task.details ?? "", priority: task.priority ?? null, date, category: task.category ?? "" });
+    setForm({ title: task.title, details: task.details ?? "", priority: task.priority ?? null, date: task.dueDate ?? "", category: task.category ?? "" });
     setFormError(""); setModalOpen(true);
   }
 
   async function handleSave() {
     if (!form.title.trim()) { setFormError("Title is required."); return; }
     setSaving(true); setFormError("");
-    const isoDate = form.date
-      ? new Date(`${form.date}T00:00:00`).toISOString()
-      : null;
+    const isoDate = form.date || null;
     const payload = {
       title: form.title.trim(), details: form.details || null,
       priority: form.priority, dueDate: isoDate, category: form.category || null,
@@ -398,10 +380,39 @@ export default function TasksPage() {
           </div>
 
           {/* Action buttons — pushed to the right */}
-          <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+          <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
+            <select
+              value={sortField}
+              onChange={e => setSortField(e.target.value as SortField)}
+              title="Sort by"
+              style={{
+                height: 36,
+                padding: "0 8px",
+                fontWeight: 700,
+                fontSize: 13,
+                fontFamily: "inherit",
+                background: "transparent",
+                color: "#111",
+                border: "2px solid #333",
+                borderRadius: "2px 4px 2px 4px / 4px 2px 4px 2px",
+                cursor: "pointer",
+                flexShrink: 0,
+                appearance: "none",
+                WebkitAppearance: "none",
+                paddingRight: 24,
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23333'/%3E%3C/svg%3E")`,
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 6px center",
+              }}
+            >
+              <option value="createdAt">Created</option>
+              <option value="dueDate">Due Date</option>
+              <option value="title">Title</option>
+              <option value="priority">Priority</option>
+            </select>
             <button
-              onClick={cycleSort}
-              title={`Sort by ${sortField} (${sortDir})`}
+              onClick={toggleSortDir}
+              title={sortDir === "asc" ? "Ascending — click for descending" : "Descending — click for ascending"}
               style={actionBtn()}
             >
               {sortDir === "asc" ? "↑" : "↓"}
@@ -895,11 +906,10 @@ export default function TasksPage() {
 
             <div className="space-y-1">
               <Label className="text-sm font-semibold text-zinc-700">Due Date:</Label>
-              <Input
-                type="date"
+              <DateTimePicker
                 value={form.date}
-                onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
-                className="bg-transparent border-0 border-b-2 border-zinc-300 rounded-none px-0 text-sm focus-visible:ring-0"
+                onChange={iso => setForm(f => ({ ...f, date: iso }))}
+                placeholder="Select due date & time"
               />
             </div>
 

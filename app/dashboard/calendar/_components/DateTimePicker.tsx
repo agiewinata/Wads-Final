@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 
@@ -149,7 +150,7 @@ export function DateTimePicker({
         </span>
       </button>
 
-      {open && (
+      {open && createPortal(
         <div
           ref={dropRef}
           style={{
@@ -299,7 +300,8 @@ export function DateTimePicker({
           >
             {selectedDate ? "Confirm" : "Cancel"}
           </button>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

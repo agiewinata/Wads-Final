@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTimer } from "../_components/TimerProvider";
 
 const IRREGULAR = "6px 8px 5px 7px / 7px 5px 8px 6px";
@@ -9,6 +9,18 @@ const CARD_IRR  = "4px 6px 4px 6px / 6px 4px 6px 4px";
 export default function DashboardTimer() {
   const [screen, setScreen] = useState<"timer" | "settings">("timer");
   const [showNotifPopup, setShowNotifPopup] = useState(false);
+
+  /* Show popup once on mount unless notifications are already granted */
+  useEffect(() => {
+    if (typeof Notification === "undefined") return;
+    if (Notification.permission === "granted") return;
+    const alreadyAsked = localStorage.getItem("notif-prompt-shown");
+    if (!alreadyAsked) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShowNotifPopup(true);
+      localStorage.setItem("notif-prompt-shown", "1");
+    }
+  }, []);
 
   const {
     focusMinutes,
@@ -116,7 +128,11 @@ export default function DashboardTimer() {
               <button
                 onClick={async () => {
                   setShowNotifPopup(false);
-                  await requestNotificationPermission();
+                  if (typeof Notification !== "undefined" && Notification.permission === "denied") {
+                    alert("Notifications are blocked in your browser. Please click the lock icon in the address bar and allow notifications for this site.");
+                  } else {
+                    await requestNotificationPermission();
+                  }
                   setIsRunning(true);
                 }}
                 style={{
