@@ -274,8 +274,6 @@ AI Response
 
 Frontend Display
 
-Explain how each AI feature processes user data and returns results.
-
 ---
 
 # 9. Security Implementation
