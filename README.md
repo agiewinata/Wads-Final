@@ -235,20 +235,46 @@ Core Entities:
 
 # 8. AI Features
 
+## 8. AI Features
+
 ## 8.1 AI Feature List
 
 | AI Feature                   | Purpose                                    | AI Type        |
 | ---------------------------- | ------------------------------------------ | -------------- |
-| AI Chat Assistant            | Study assistance and productivity guidance | NLP            |
-| Burnout Detection            | Workload analysis                          | NLP            |
-| Productivity Recommendations | Personalized study suggestions             | Recommendation |
-| Daily Affirmation Generator  | Motivation and encouragement               | NLP            |
+| AI Chat Assistant            | Study assistance and productivity guidance | LLM/ Genrative AI           |
+| Burnout Detection            | Workload analysis                          | LLM/ Rule Based            |
+| Productivity Recommendations | Personalized study suggestions             | LLM/ Genrative AI |
+| Daily Affirmation Generator  | Motivation and encouragement               | LLM/ Rule Based           |
 
 ## 8.2 AI Integration Flow
 
-**Recomendation, Burnout Detection, and Daily Affirmation:** System compile user task data -> send to Ollama API -> generate response -> Displayed to user
+User Input
 
-**AI Chatbot:** Input(Text and/or pdf file) -> Ollama API -> generate response -> displayed to user
+&darr;
+
+REST API
+
+↓
+
+Database Query
+
+&darr;
+
+Prompt Construction
+
+&darr;
+
+Ollama Processing
+
+↓
+
+AI Response
+
+↓
+
+Frontend Display
+
+Explain how each AI feature processes user data and returns results.
 
 ---
 
