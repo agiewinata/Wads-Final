@@ -239,9 +239,9 @@ Core Entities:
 
 | AI Feature                   | Purpose                                    | AI Type        |
 | ---------------------------- | ------------------------------------------ | -------------- |
-| AI Chat Assistant            | Study assistance and productivity guidance | LLM/ Genrative AI           |
+| AI Chat Assistant            | Study assistance and productivity guidance | LLM/ Generative AI           |
 | Burnout Detection            | Workload analysis                          | LLM/ Rule Based            |
-| Productivity Recommendations | Personalized study suggestions             | LLM/ Genrative AI |
+| Productivity Recommendations | Personalized study suggestions             | LLM/ Generative AI |
 | Daily Affirmation Generator  | Motivation and encouragement               | LLM/ Rule Based           |
 
 ## 8.2 AI Integration Flow
