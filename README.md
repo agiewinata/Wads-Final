@@ -24,9 +24,9 @@ L4AC
 
 | Name     | Student ID | Role                    | GitHub Username |
 | -------- | ---------- | ----------------------- | --------------- |
-| Agie Winata | 2902642726   | Backend Developer      | agiewinata        |
-| Andres Winson | 2802501123   |Frontend Developer        | Smurfhvr8ght        |
-| Irene Angelina | 2802501060   | AI & Security Developer | LittleDuckTape        |
+| Agie Winata | 2902642726   | AI, Security, and Backend Developer | agiewinata        |
+| Andres Winson | 2802501123   |Frontend and Backend Developer, and Tester        | Smurfhvr8ght        |
+| Irene Angelina | 2802501060   | Frontend Developer, and Tester | LittleDuckTape        |
 
 ---
 
@@ -496,12 +496,30 @@ https://e2526-wads-b4ac-05.csbihub.id
 
 
 ### Tests Written
+* AI Assess 
+* AI Chat
+* AI Recommendations
+* AI Upload 
+* Categories 
+* Events List 
+* Event by ID 
+* Tasks List
+* Task by ID 
 
 ### Security Work
 
+* Zod schema validation at API boundaries 
+* Input sanitisation
+* Tiered rate limiting 
+* CSRF protection on mutating requests 
+* Secure session configuration
+ 
 ### AI Related Work
 
-
+* Burnout Detectio
+* Daily Affirmations
+* Streaming AI Chat
+* File Upload for AI Context
 
 ## Student Name: Andres Winson
 
