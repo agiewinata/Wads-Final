@@ -324,7 +324,7 @@ Applied to every response through middleware:
 * Removes `<script>` tags and their contents.
 * Removes HTML/XML tags.
 * Removes dangerous URI schemes such as `javascript:` and `data:`.
-* Executable inputed by users are not run by application.
+* Executable input by users are not run by application.
 
 **Relevant files:** `lib/sanitize.ts`, `app/api/tasks/route.ts`, `app/api/events/route.ts`, `app/api/categories/route.ts`
 
