@@ -345,37 +345,37 @@ Applied to every response through middleware:
 
 # 10. Testing Documentation
 
-## 10.1 Frontend Testing
+#### AI Feature: AI Chat Assistant
 
-| Test Case | Scenario      | Expected Result  | Status |
-| --------- | ------------- | ---------------- | ------ |
-| FE-01     | Login Form    | Successful Login | Pass   |
-| FE-02     | Invalid Login | Error Displayed  | Pass   |
+| Test Case | Input | Expected Output | Actual Result | Status |
+|-----------|--------|----------------|--------------|--------|
+| AI-01 | Valid study-related question | Relevant AI response generated | Correct response returned | ✅ Pass |
+| AI-02 | Empty or invalid input | Error message returned | Error handled correctly | ✅ Pass |
+| AI-03 | Prompt injection attempt | System prompt remains protected | Injection attempt ignored | ✅ Pass |
 
-## 10.2 Backend & API Testing
+#### AI Feature: Burnout Assessment & Daily Affirmation
 
-| Test Case | Endpoint        | Input      | Expected Output | Status |
-| --------- | --------------- | ---------- | --------------- | ------ |
-| API-01    | POST /api/tasks | Valid Task | Task Created    | Pass   |
+| Test Case | Input | Expected Output | Actual Result | Status |
+|-----------|--------|----------------|--------------|--------|
+| AI-04 | Valid burnout assessment request | Burnout analysis returned | Assessment generated correctly | ✅ Pass |
+| AI-05 | Valid affirmation request | Positive affirmation returned | Affirmation generated correctly | ✅ Pass |
+| AI-06 | Invalid request type | Error message returned | Error handled correctly | ✅ Pass |
 
-The application currently contains 89 automated tests across 9 test suites.
+#### AI Feature: Productivity Recommendations
 
-## 10.3 Security Testing
+| Test Case | Input | Expected Output | Actual Result | Status |
+|-----------|--------|----------------|--------------|--------|
+| AI-07 | User productivity data | Personalized recommendations generated | Recommendations returned correctly | ✅ Pass |
+| AI-08 | Missing or invalid input | Error message returned | Error handled correctly | ✅ Pass |
+| AI-09 | Prompt injection attempt | System instructions preserved | Injection attempt ignored | ✅ Pass |
 
-| Test Case | Attack Type   | Expected Behavior | Result |
-| --------- | ------------- | ----------------- | ------ |
-| SEC-01    | XSS           | Input Sanitized   | Pass   |
-| SEC-02    | SQL Injection | Query Blocked     | Pass   |
+#### AI Feature: PDF Context Upload
 
-## 10.4 AI Functionality Testing
-
-### AI Feature: Burnout Detection
-
-| Test Case | Input         | Expected Output | Actual Result | Status |
-| --------- | ------------- | --------------- | ------------- | ------ |
-| AI-01     | High Workload | Burnout Warning | Correct       | Pass   |
-| AI-02     | Low Workload  | No Warning      | Correct       | Pass   |
-| AI-03     | Invalid Input | Error Handling  | Correct       | Pass   |
+| Test Case | Input | Expected Output | Actual Result | Status |
+|-----------|--------|----------------|--------------|--------|
+| AI-10 | Valid PDF document | Text extracted successfully | Text returned correctly | ✅ Pass |
+| AI-11 | Corrupted PDF file | Parsing error returned | Returns `422 Could Not Parse PDF` | ✅ Pass |
+| AI-12 | Unsupported file type | Validation error returned | Error handled correctly | ✅ Pass |
 
 ### Failure Handling
 
