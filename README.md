@@ -265,15 +265,15 @@ system compile user task data -> send to Ollama API -> generate response -> disp
 **Implementation:** Better-Auth v1.6.11 with server-side session validation.
 
 * Every protected API route calls `auth.api.getSession()` and returns `401 Unauthorized` if no valid session is found.
-* Sessions are stored server-side; the client only holds a signed, HttpOnly session cookie.
-* Passwords are hashed using **bcryptjs** before storage — plaintext passwords are never persisted.
+* Sessions are stored server-side. Clients only holds a signed, HttpOnly session cookie.
+* Passwords are hashed using bcryptjs before storage — plaintext passwords are never persisted.
 * Google OAuth is available as a passwordless sign-in option.
 
 **Relevant files:** `lib/auth.ts`, `app/api/auth/[...all]/route.ts`
 
 ### 2. Authorization — Resource Ownership Checks
 
-* Every endpoint that reads, updates, or deletes a resource verifies that the authenticated user owns it.
+* Every endpoint that reads, updates, or deletes a resource verifies user ownership.
 * Returning `404` instead of `403` avoids revealing whether a resource exists to another user (IDOR prevention).
 
 **Relevant files:** `app/api/tasks/[id]/route.ts`, `app/api/events/[id]/route.ts`, `app/api/categories/[id]/route.ts`
@@ -314,7 +314,7 @@ Applied to every response through middleware:
 ### 6. Input Validation (Zod)
 
 * All request bodies are validated using Zod schemas.
-* Enforces required fields, correct data types, valid dates, and length limits.
+* Ensures fields, data types, dates, and lengths are valid.
 * Invalid requests return `400 Bad Request` with validation errors.
 
 **Relevant files:** All `app/api/*/route.ts` files
@@ -326,7 +326,7 @@ Applied to every response through middleware:
 * Removes `<script>` tags and their contents.
 * Removes HTML/XML tags.
 * Removes dangerous URI schemes such as `javascript:` and `data:`.
-* React automatically escapes rendered content as an additional layer of protection.
+* Executable inputed by users are not run by application.
 
 **Relevant files:** `lib/sanitize.ts`, `app/api/tasks/route.ts`, `app/api/events/route.ts`, `app/api/categories/route.ts`
 
