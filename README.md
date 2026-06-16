@@ -260,46 +260,88 @@ system compile user task data -> send to Ollama API -> generate response -> disp
 
 # 9. Security Implementation
 
-## Authentication
+### 1. Authentication & Session Management
 
-The application uses Better Auth for user authentication.
+**Implementation:** Better-Auth v1.6.11 with server-side session validation.
 
-Supported login methods:
+* Every protected API route calls `auth.api.getSession()` and returns `401 Unauthorized` if no valid session is found.
+* Sessions are stored server-side; the client only holds a signed, HttpOnly session cookie.
+* Passwords are hashed using **bcryptjs** before storage — plaintext passwords are never persisted.
+* Google OAuth is available as a passwordless sign-in option.
 
-* Email and Password
-* Google OAuth
+**Relevant files:** `lib/auth.ts`, `app/api/auth/[...all]/route.ts`
 
-Passwords are securely hashed before storage.
+### 2. Authorization — Resource Ownership Checks
 
-## Authorization
+* Every endpoint that reads, updates, or deletes a resource verifies that the authenticated user owns it.
+* Returning `404` instead of `403` avoids revealing whether a resource exists to another user (IDOR prevention).
 
-Users can only access and modify their own resources.
+**Relevant files:** `app/api/tasks/[id]/route.ts`, `app/api/events/[id]/route.ts`, `app/api/categories/[id]/route.ts`
 
-Ownership checks are performed on every task, category, and event request.
+### 3. CSRF Protection (Double-Submit Cookie)
 
-## Input Validation
+**Implementation:** `proxy.ts` (Next.js middleware)
 
-All incoming requests are validated using Zod schemas.
+* All mutating requests (`POST`, `PUT`, `PATCH`, `DELETE`) require a valid CSRF token.
+* The middleware compares the token stored in the cookie with the token sent in the `x-csrf-token` header.
+* Invalid or missing tokens result in a `403 Forbidden` response.
+* Tokens are generated using `crypto.randomUUID()` and sent through `csrfFetch()`.
 
-Invalid requests are rejected before processing.
+**Relevant files:** `proxy.ts`, `lib/csrf-client.ts`
 
-## Protection Against SQL Injection
+### 4. Security Headers
 
-Prisma ORM uses parameterized queries and prevents direct SQL execution.
+Applied to every response through middleware:
 
-## Protection Against XSS
+| Header                  | Purpose                             |
+| ----------------------- | ----------------------------------- |
+| Content-Security-Policy | Helps prevent XSS and clickjacking  |
+| X-Frame-Options         | Prevents iframe embedding           |
+| X-Content-Type-Options  | Prevents MIME-type sniffing         |
+| Referrer-Policy         | Limits referrer information leakage |
+| Permissions-Policy      | Disables unnecessary browser APIs   |
 
-User input is sanitized before storage and rendering.
+### 5. Rate Limiting
 
-Potentially dangerous scripts and HTML content are removed.
+**Implementation:** In-process sliding-window rate limiter.
 
-## Protection Against CSRF
+* AI endpoints are limited to 20 requests per minute.
+* File upload endpoints are limited to 10 requests per minute.
+* Exceeding limits returns `429 Too Many Requests`.
 
-The application implements a double-submit cookie strategy through middleware.
+**Relevant files:** `lib/rate-limit.ts`, `app/api/ai/*/route.ts`
 
-## Secure API Key Handling
+### 6. Input Validation (Zod)
 
-All secrets are stored in environment variables and are never exposed to the users.
+* All request bodies are validated using Zod schemas.
+* Enforces required fields, correct data types, valid dates, and length limits.
+* Invalid requests return `400 Bad Request` with validation errors.
+
+**Relevant files:** All `app/api/*/route.ts` files
+
+### 7. Input Sanitization (XSS Prevention)
+
+**Implementation:** `lib/sanitize.ts`
+
+* Removes `<script>` tags and their contents.
+* Removes HTML/XML tags.
+* Removes dangerous URI schemes such as `javascript:` and `data:`.
+* React automatically escapes rendered content as an additional layer of protection.
+
+**Relevant files:** `lib/sanitize.ts`, `app/api/tasks/route.ts`, `app/api/events/route.ts`, `app/api/categories/route.ts`
+
+### 8. SQL Injection Prevention
+
+* Uses Prisma ORM for all database operations.
+* Prisma automatically generates parameterized queries.
+* No raw SQL (`$queryRaw`) is used in the application.
+
+### 9. Sensitive Data Handling
+
+* `.env` files are excluded using `.gitignore`.
+* API keys, database credentials, and secrets are stored in environment variables.
+* GitHub Actions Secrets are used for deployment and CI/CD credentials.
+
 
 ---
 
