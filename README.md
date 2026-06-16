@@ -424,13 +424,6 @@ Applied to every response through middleware:
 | AI-11 | Corrupted PDF file | Parsing error returned | Returns `422 Could Not Parse PDF` | ✅ Pass |
 | AI-12 | Unsupported file type | Validation error returned | Error handled correctly | ✅ Pass |
 
-### Failure Handling
-
-* AI timeout handling
-* AI unavailable fallback response
-* Invalid prompt handling
-* Prompt injection mitigation
-
 ---
 
 # 11. Deployment & Production Setup
@@ -647,6 +640,6 @@ docker compose down
 docker compose up --build -d
 ```
 
-# 18 Video Link
+# 18. Video Link
 
 Project Demo: https://youtu.be/zGk_CcabO64 
