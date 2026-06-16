@@ -10,7 +10,7 @@
 
 ## Project Title
 
-Study Planner & Productivity Tracker
+Quest Class
 
 ## Project Domain
 
@@ -423,6 +423,17 @@ Applied to every response through middleware:
 | AI-10 | Valid PDF document | Text extracted successfully | Text returned correctly | ✅ Pass |
 | AI-11 | Corrupted PDF file | Parsing error returned | Returns `422 Could Not Parse PDF` | ✅ Pass |
 | AI-12 | Unsupported file type | Validation error returned | Error handled correctly | ✅ Pass |
+
+### Failure Handling
+
+* Unauthorized access handling (401 responses)
+* AI service unavailable handling (502 responses)
+* AI non-success response handling (502 responses)
+* Missing file upload validation
+* File size limit validation (10 MB)
+* Corrupted PDF parsing error handling
+* Invalid AI response fallback handling
+* Large document truncation and processing limits
 
 ---
 
