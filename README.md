@@ -345,6 +345,53 @@ Applied to every response through middleware:
 
 # 10. Testing Documentation
 
+### 10.1 Frontend Testing
+
+| Test Case | Scenario | Expected Result | Status |
+|-----------|-----------|----------------|--------|
+| FE-01 | User login with valid credentials | User is redirected to dashboard | ✅ Pass |
+| FE-02 | User login with invalid credentials | Error message displayed and login denied | ✅ Pass |
+| FE-03 | Create a new task | Task appears in task list | ✅ Pass |
+| FE-04 | Edit an existing task | Updated task information is displayed | ✅ Pass |
+| FE-05 | Delete a task | Task is removed from task list | ✅ Pass |
+| FE-06 | Create an event | Event appears on calendar | ✅ Pass |
+| FE-07 | Dashboard analytics display | Statistics and charts load correctly | ✅ Pass |
+| FE-08 | AI chat interaction | AI response is displayed correctly | ✅ Pass |
+
+### 10.2 Backend & API Testing
+
+| Test Case | Endpoint | Input | Expected Output | Status |
+|-----------|----------|-------|----------------|--------|
+| API-01 | `/api/tasks` | Valid task data | Task created successfully | ✅ Pass |
+| API-02 | `/api/tasks/{id}` | Updated task data | Task updated successfully | ✅ Pass |
+| API-03 | `/api/tasks/{id}` | Valid task ID | Task deleted successfully | ✅ Pass |
+| API-04 | `/api/events` | Valid event data | Event created successfully | ✅ Pass |
+| API-05 | `/api/events/{id}` | Updated event data | Event updated successfully | ✅ Pass |
+| API-06 | `/api/events/{id}` | Valid event ID | Event deleted successfully | ✅ Pass |
+| API-07 | `/api/categories` | Valid category data | Category created successfully | ✅ Pass |
+| API-08 | `/api/ai/chat` | User prompt | AI response returned | ✅ Pass |
+| API-09 | `/api/ai/recommendations` | User productivity data | Recommendations generated | ✅ Pass |
+| API-10 | `/api/ai/upload` | Valid PDF file | Text extracted successfully | ✅ Pass |
+| API-11 | `/api/ai/upload` | Corrupted PDF file | Returns `422 Could Not Parse PDF` | ✅ Pass |
+
+### 10.3 Security Testing
+
+| Test Case | Attack Type | Expected Behavior | Result |
+|-----------|------------|------------------|--------|
+| SEC-01 | Unauthorized Access | Returns `401 Unauthorized` | ✅ Pass |
+| SEC-02 | IDOR (Access Other User's Resource) | Returns `404 Not Found` | ✅ Pass |
+| SEC-03 | Missing CSRF Token | Returns `403 Forbidden` | ✅ Pass |
+| SEC-04 | Invalid CSRF Token | Returns `403 Forbidden` | ✅ Pass |
+| SEC-05 | XSS (`<script>alert(1)</script>`) | Input sanitized before storage | ✅ Pass |
+| SEC-06 | XSS (`<img onerror=alert(1)>`) | HTML tags removed | ✅ Pass |
+| SEC-07 | SQL Injection (`' OR '1'='1`) | Stored safely as plain text | ✅ Pass |
+| SEC-08 | SQL Injection (`DROP TABLE`) | Database remains unaffected | ✅ Pass |
+| SEC-09 | Invalid Input Data | Returns `400 Bad Request` | ✅ Pass |
+| SEC-10 | Rate Limit Abuse | Returns `429 Too Many Requests` | ✅ Pass |
+| SEC-11 | Clickjacking Attempt | Blocked by security headers | ✅ Pass |
+
+### 10.4 AI Functionality Testing
+
 #### AI Feature: AI Chat Assistant
 
 | Test Case | Input | Expected Output | Actual Result | Status |
