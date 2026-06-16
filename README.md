@@ -524,7 +524,7 @@ https://e2526-wads-b4ac-05.csbihub.id
 
 ### Security Work
 * Implemented event ownerships validation
-* Preveting other users from accessing or modifying events owned by other users
+* Preventing other users from accessing or modifying events owned by other users
 * Validation for event API using Zod schema
 * Input Sanitization for event creation
 
@@ -649,6 +649,8 @@ docker compose down
 
 docker compose up --build -d
 ```
+
+---
 
 # 18. Video Link
 
