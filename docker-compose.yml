@@ -6,6 +6,8 @@ services:
       args:
         NEXT_PUBLIC_APP_URL: https://e2526-wads-b4ac-05.csbihub.id
     network_mode: host
+    environment:
+      PORT: "3014"
     env_file: .env.production
     restart: unless-stopped
     healthcheck:
