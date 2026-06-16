@@ -235,8 +235,6 @@ Core Entities:
 
 # 8. AI Features
 
-## 8. AI Features
-
 ## 8.1 AI Feature List
 
 | AI Feature                   | Purpose                                    | AI Type        |
