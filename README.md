@@ -564,7 +564,6 @@ https://e2526-wads-b4ac-05.csbihub.id
 * ChatGPT
 * Ollama
 * Claude
-* Claude
 
 ### Purpose of Usage
 
