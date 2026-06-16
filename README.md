@@ -24,9 +24,9 @@ L4AC
 
 | Name     | Student ID | Role                    | GitHub Username |
 | -------- | ---------- | ----------------------- | --------------- |
-| Member 1 | 2902642726   | Backend Developer      | agiewinata        |
-| Member 2 | 2802501123   |Frontend Developer        | Smurfhvr8ght        |
-| Member 3 | 2802501060   | AI & Security Developer | LittleDuckTape        |
+| Agie Winata | 2902642726   | Backend Developer      | agiewinata        |
+| Andres Winson | 2802501123   |Frontend Developer        | Smurfhvr8ght        |
+| Irene Angelina | 2802501060   | AI & Security Developer | LittleDuckTape        |
 
 ---
 
@@ -134,11 +134,11 @@ The application helps users organize their academic responsibilities, track stud
 └──────────────────────┬──────────────────────┘
                        │
           ┌────────────┴────────────┐
-          │                        │
-   ┌──────▼──────┐        ┌────────▼────────┐
-   │  Neon (PG)  │        │  Ollama (LLM)   │
-   │  via Prisma │        │  llama3.1:8b    │
-   └─────────────┘        └─────────────────┘
+          │                         │
+   ┌──────▼──────┐         ┌────────▼────────┐
+   │  Neon (PG)  │         │  Ollama (LLM)   │
+   │  via Prisma │         │  llama3.1:8b    │
+   └─────────────┘         └─────────────────┘
 ```
 
 
@@ -414,14 +414,43 @@ https://e2526-wads-b4ac-05.csbihub.id
 ## Student Name: Agie Winata
 
 ### Features Implemented
+* AI Chatbot
+* To-Do List
+* Analytics
+* Daily check-in and Burnout safeguard
+* Docker and Deployment
+* Ci/Cd Pipiline for github action
 
 ### API Endpoints Handled
+* GET /api/auth/[...all] 
+* POST /api/auth/[...all] 
+* GET /api/tasks 
+* POST /api/tasks
+* PATCH /api/tasks/{id} 
+* DELETE /api/tasks/{id} 
+* GET /api/events
+* POST /api/events
+* PATCH /api/events/{id} 
+* DELETE /api/events/{id} 
+* GET /api/categories 
+* POST /api/categories 
+* DELETE /api/categories/{id} 
+* GET /api/analytics 
+* POST /api/ai/chat 
+* POST /api/ai/recommendations 
+* POST /api/ai/upload 
+* POST /api/ai/assess 
+* GET /api/health 
+* GET /api/docs 
+
 
 ### Tests Written
 
 ### Security Work
 
 ### AI Related Work
+
+
 
 ## Student Name: Andres Winson
 
@@ -487,6 +516,7 @@ https://e2526-wads-b4ac-05.csbihub.id
 
 * ChatGPT
 * Ollama
+* Claude
 * Claude
 
 ### Purpose of Usage
@@ -569,3 +599,7 @@ docker compose down
 
 docker compose up --build -d
 ```
+
+# 18 Video Link
+
+Project Demo: https://youtu.be/zGk_CcabO64 
