@@ -258,7 +258,7 @@ system compile user task data -> send to Ollama API -> generate response -> disp
 
 # 9. Security Implementation
 
-### 1. Authentication & Session Management
+### 9.1. Authentication & Session Management
 
 **Implementation:** Better-Auth v1.6.11 with server-side session validation.
 
@@ -269,14 +269,14 @@ system compile user task data -> send to Ollama API -> generate response -> disp
 
 **Relevant files:** `lib/auth.ts`, `app/api/auth/[...all]/route.ts`
 
-### 2. Authorization — Resource Ownership Checks
+### 9.2. Authorization — Resource Ownership Checks
 
 * Every endpoint that reads, updates, or deletes a resource verifies user ownership.
 * Returning `404` instead of `403` avoids revealing whether a resource exists to another user (IDOR prevention).
 
 **Relevant files:** `app/api/tasks/[id]/route.ts`, `app/api/events/[id]/route.ts`, `app/api/categories/[id]/route.ts`
 
-### 3. CSRF Protection (Double-Submit Cookie)
+### 9.3. CSRF Protection (Double-Submit Cookie)
 
 **Implementation:** `proxy.ts` (Next.js middleware)
 
@@ -287,7 +287,7 @@ system compile user task data -> send to Ollama API -> generate response -> disp
 
 **Relevant files:** `proxy.ts`, `lib/csrf-client.ts`
 
-### 4. Security Headers
+### 9.4. Security Headers
 
 Applied to every response through middleware:
 
@@ -299,7 +299,7 @@ Applied to every response through middleware:
 | Referrer-Policy         | Limits referrer information leakage |
 | Permissions-Policy      | Disables unnecessary browser APIs   |
 
-### 5. Rate Limiting
+### 9.5. Rate Limiting
 
 **Implementation:** In-process sliding-window rate limiter.
 
@@ -309,7 +309,7 @@ Applied to every response through middleware:
 
 **Relevant files:** `lib/rate-limit.ts`, `app/api/ai/*/route.ts`
 
-### 6. Input Validation (Zod)
+### 9.6. Input Validation (Zod)
 
 * All request bodies are validated using Zod schemas.
 * Ensures fields, data types, dates, and lengths are valid.
@@ -317,7 +317,7 @@ Applied to every response through middleware:
 
 **Relevant files:** All `app/api/*/route.ts` files
 
-### 7. Input Sanitization (XSS Prevention)
+### 9.7. Input Sanitization (XSS Prevention)
 
 **Implementation:** `lib/sanitize.ts`
 
@@ -328,13 +328,13 @@ Applied to every response through middleware:
 
 **Relevant files:** `lib/sanitize.ts`, `app/api/tasks/route.ts`, `app/api/events/route.ts`, `app/api/categories/route.ts`
 
-### 8. SQL Injection Prevention
+### 9.8. SQL Injection Prevention
 
 * Uses Prisma ORM for all database operations.
 * Prisma automatically generates parameterized queries.
 * No raw SQL (`$queryRaw`) is used in the application.
 
-### 9. Sensitive Data Handling
+### 9.9. Sensitive Data Handling
 
 * `.env` files are excluded using `.gitignore`.
 * API keys, database credentials, and secrets are stored in environment variables.
