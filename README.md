@@ -47,9 +47,9 @@ This repository is shared with:
 
 ## 3.1 Problem Statement
 
-Many students often struggle to keep track of their task and assignment. In addition to procrastination from being overwhelmed with the quantity of work. While there are methods to help with this issue, most of these solution only offer aid to alliviate one facet of the issue. Stundents who uses these apps have to juggle between multiple apps which may increase their workload instead.
+Many students often struggle to keep track of their tasks and assignments. In addition to procrastination from being overwhelmed with the quantity of work. While there are methods to help with this issue, most of these solutions only offer aid to alleviate one facet of the issue. Students who use these apps have to juggle between multiple apps which may increase their workload instead.
 
-This project aims to solve this issyue by providing a centralized platform for students to organize thier accademic activities and to help improve their productivity
+This project aims to solve this issue by providing a centralized platform for students to organize their academic activities and to help improve their productivity
 
 ### Target Users
 
