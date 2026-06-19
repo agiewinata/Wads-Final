@@ -1,0 +1,18 @@
+name: Overdue Task Notifications
+
+on:
+  schedule:
+    - cron: '0 8 * * *'   # 8:00 AM UTC daily
+  workflow_dispatch:        # allow manual trigger for testing
+
+jobs:
+  notify:
+    name: Send overdue notifications
+    runs-on: self-hosted
+    steps:
+      - name: Call overdue notify endpoint
+        run: |
+          RESPONSE=$(curl -f -s -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            http://localhost:3014/api/cron/overdue-notify)
+          echo "Response: $RESPONSE"
