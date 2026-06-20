@@ -5,6 +5,7 @@ import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import { csrfFetch } from "@/lib/csrf-client";
 import { DateTimePicker } from "./_components/DateTimePicker";
+import { PriorityDots } from "./_components/PriorityDots";
 
 interface Task {
   id: string;
@@ -38,14 +39,6 @@ interface Event {
 
 const IRREGULAR = "6px 8px 5px 7px / 7px 5px 8px 6px";
 const CARD_IRREGULAR = "4px 6px 4px 6px / 6px 4px 6px 4px";
-
-const PRIORITY_COLORS: Record<number, string> = {
-  1: "#fde047",
-  2: "#eab308",
-  3: "#ca8a04",
-  4: "#ea580c",
-  5: "#dc2626",
-};
 
 export default function CalendarPage() {
   const [tasks, setTasks]                   = useState<Task[]>([]);
@@ -528,22 +521,8 @@ export default function CalendarPage() {
                                   </div>
                                 </div>
 
-                                {task.priority && (
-                                  <div
-                                    style={{
-                                      fontSize: 10,
-                                      fontWeight: 700,
-                                      padding: "3px 8px",
-                                      border: "2px solid #111",
-                                      borderRadius: 4,
-                                      background: PRIORITY_COLORS[task.priority] ?? "#fde047",
-                                      color: "#111",
-                                      flexShrink: 0,
-                                      letterSpacing: "0.02em",
-                                    }}
-                                  >
-                                    P{task.priority}
-                                  </div>
+                                {task.priority != null && (
+                                  <PriorityDots priority={task.priority} />
                                 )}
                               </div>
                             </div>
@@ -606,10 +585,8 @@ export default function CalendarPage() {
                                     )}
                                   </div>
                                 </div>
-                                {task.priority && (
-                                  <div style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", border: "2px solid #111", borderRadius: 4, background: PRIORITY_COLORS[task.priority] ?? "#fde047", color: "#111", flexShrink: 0 }}>
-                                    P{task.priority}
-                                  </div>
+                                {task.priority != null && (
+                                  <PriorityDots priority={task.priority} />
                                 )}
                               </div>
                             </div>
