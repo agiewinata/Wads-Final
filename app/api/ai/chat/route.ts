@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { limits } from "@/lib/rate-limit";
 
 const OLLAMA_BASE  = process.env.OLLAMA_BASE  ?? "https://ollama.csbihub.id";
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "llama3.1:8b";
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "gemma4:26b";
 
 export async function POST(req: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -49,7 +49,7 @@ How to respond:
 - Be like a kind, smart friend. Never preachy.`;
 
   // Use a vision-capable model when images are attached
-  const model = images?.length ? "gemma4:e4b" : OLLAMA_MODEL;
+  const model = OLLAMA_MODEL;
 
   // Attach images to the last user message
   const ollamaMessages = [

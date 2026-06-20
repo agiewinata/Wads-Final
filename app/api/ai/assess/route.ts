@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { limits } from "@/lib/rate-limit";
 
 const OLLAMA_BASE  = process.env.OLLAMA_BASE  ?? "https://ollama.csbihub.id";
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "llama3.1:8b";
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "gemma4:26b";
 
 type AssessType = "burnout" | "affirmation";
 

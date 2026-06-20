@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signUp, signIn } from "@/lib/auth-client";
 
 function GoogleIcon() {
@@ -34,12 +34,16 @@ function EyeIcon({ open }: { open: boolean }) {
   );
 }
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [isGooglePending, startGoogleTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+
+  const rawCallback = searchParams.get("callbackUrl");
+  const destination = rawCallback?.startsWith("/") ? rawCallback : "/dashboard";
 
   function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -54,19 +58,19 @@ export default function SignupPage() {
         name,
         email,
         password,
-        callbackURL: "/dashboard",
+        callbackURL: destination,
       });
       if (authError) {
         setError(authError.message ?? "Could not create account.");
       } else {
-        router.push("/dashboard");
+        router.push(destination);
       }
     });
   }
 
   function handleGoogle() {
     startGoogleTransition(async () => {
-      await signIn.social({ provider: "google", callbackURL: "/dashboard" });
+      await signIn.social({ provider: "google", callbackURL: destination });
     });
   }
 
@@ -193,5 +197,13 @@ export default function SignupPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense>
+      <SignupForm />
+    </Suspense>
   );
 }

@@ -18,18 +18,28 @@ export async function GET(req: NextRequest) {
   const rangeKey = req.nextUrl.searchParams.get("range") ?? "7d";
   const { days, bucket } = RANGES[rangeKey] ?? RANGES["7d"];
 
-  const tasks = await prisma.task.findMany({
-    where: { userId: session.user.id },
-    select: {
-      title: true,
-      category: true,
-      completed: true,
-      dueDate: true,
-      priority: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
+  const userId = session.user.id;
+
+  const [personalTasks, wsTasks] = await Promise.all([
+    prisma.task.findMany({
+      where: { userId },
+      select: { title: true, category: true, completed: true, dueDate: true, priority: true, createdAt: true, updatedAt: true },
+    }),
+    prisma.workspaceTask.findMany({
+      where: {
+        workspace: {
+          OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+        },
+      },
+      select: { completed: true, dueDate: true, priority: true, createdAt: true, updatedAt: true },
+    }),
+  ]);
+
+  // Merge into a unified shape for summary stats
+  const tasks = [
+    ...personalTasks,
+    ...wsTasks.map(t => ({ ...t, title: "", category: null })),
+  ];
 
   const now = new Date();
 
@@ -46,9 +56,9 @@ export async function GET(req: NextRequest) {
     return due > now && due < new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
   });
 
-  // By category
+  // By category (personal tasks only — workspace tasks have no category)
   const catMap = new Map<string, { total: number; completed: number }>();
-  for (const t of tasks) {
+  for (const t of personalTasks) {
     const key = t.category ?? "None";
     if (!catMap.has(key)) catMap.set(key, { total: 0, completed: 0 });
     const e = catMap.get(key)!;

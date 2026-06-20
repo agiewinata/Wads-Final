@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { getUser } from "@/lib/dal";
 import Sidebar from "./_components/Sidebar";
 import AffirmationPopup from "./_components/AffirmationPopup";
@@ -11,7 +12,13 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const user = await getUser();
-  if (!user) redirect("/login");
+  if (!user) {
+    const h = await headers();
+    const pathname = h.get("x-pathname") ?? "/dashboard";
+    const search   = h.get("x-search") ?? "";
+    const callbackUrl = encodeURIComponent(pathname + search);
+    redirect(`/login?callbackUrl=${callbackUrl}`);
+  }
 
   return (
     <TimerProvider userId={user.id}>

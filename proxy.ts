@@ -37,6 +37,10 @@ export function proxy(req: NextRequest): NextResponse {
 
   const res = NextResponse.next();
 
+  // Expose pathname + search to server components (used by dashboard layout for callbackUrl)
+  res.headers.set("x-pathname", req.nextUrl.pathname);
+  res.headers.set("x-search", req.nextUrl.search);
+
   // Security headers
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
     res.headers.set(name, value);

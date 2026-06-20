@@ -784,11 +784,12 @@ export default function TasksPage() {
       <Dialog open={modalOpen} onOpenChange={open => setModalOpen(open)}>
         <DialogContent
           showCloseButton={false}
-          className="max-w-sm bg-white p-0 overflow-hidden"
+          className="max-w-sm bg-white p-0 flex flex-col"
           style={{
             border: "3px solid #111",
             borderRadius: "6px 8px 5px 7px / 7px 5px 8px 6px",
             boxShadow: "6px 8px 0 rgba(0,0,0,0.18)",
+            maxHeight: "90vh",
           }}
         >
           {/* CANCEL / SAVE */}
@@ -820,7 +821,7 @@ export default function TasksPage() {
             </button>
           </DialogHeader>
 
-          <div className="px-6 py-5 space-y-4">
+          <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
             {formError && (
               <p className="text-sm font-medium" style={{ color: "#555" }}>{formError}</p>
             )}

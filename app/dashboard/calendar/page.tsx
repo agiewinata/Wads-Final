@@ -15,6 +15,18 @@ interface Task {
   completed: boolean;
 }
 
+interface WorkspaceTask {
+  id: string;
+  title: string;
+  details: string | null;
+  dueDate: string | null;
+  priority: number | null;
+  completed: boolean;
+  assignees: { user: { id: string; name: string | null } }[];
+  creator: { id: string; name: string | null };
+  workspace: { id: string; name: string };
+}
+
 interface Event {
   id: string;
   title: string;
@@ -36,8 +48,9 @@ const PRIORITY_COLORS: Record<number, string> = {
 };
 
 export default function CalendarPage() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [events, setEvents] = useState<Event[]>([]);
+  const [tasks, setTasks]                   = useState<Task[]>([]);
+  const [events, setEvents]                 = useState<Event[]>([]);
+  const [workspaceTasks, setWorkspaceTasks] = useState<WorkspaceTask[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(true);
   const [showEventModal, setShowEventModal] = useState(false);
@@ -62,6 +75,9 @@ export default function CalendarPage() {
         const eventData = await eventResponse.json();
         if (eventResponse.ok) setEvents(eventData);
         else console.error(eventData);
+
+        const wsRes = await fetch("/api/workspace-tasks");
+        if (wsRes.ok) setWorkspaceTasks(await wsRes.json());
       } catch (error) {
         console.error(error);
       } finally {
@@ -82,6 +98,18 @@ export default function CalendarPage() {
       );
     });
   }, [tasks, selectedDate]);
+
+  const selectedWorkspaceTasks = useMemo(() => {
+    return workspaceTasks.filter((t) => {
+      if (!t.dueDate) return false;
+      const due = new Date(t.dueDate);
+      return (
+        due.getDate() === selectedDate.getDate() &&
+        due.getMonth() === selectedDate.getMonth() &&
+        due.getFullYear() === selectedDate.getFullYear()
+      );
+    });
+  }, [workspaceTasks, selectedDate]);
 
   const selectedEvents = useMemo(() => {
     return events.filter((event) => {
@@ -177,7 +205,17 @@ export default function CalendarPage() {
       return currentDay >= startDay && currentDay <= endDay;
     });
 
-    if (dayTasks.length === 0 && dayEvents.length === 0) return null;
+    const dayWorkspaceTasks = workspaceTasks.filter((t) => {
+      if (!t.dueDate) return false;
+      const due = new Date(t.dueDate);
+      return (
+        due.getDate() === date.getDate() &&
+        due.getMonth() === date.getMonth() &&
+        due.getFullYear() === date.getFullYear()
+      );
+    });
+
+    if (dayTasks.length === 0 && dayEvents.length === 0 && dayWorkspaceTasks.length === 0) return null;
 
     let taskDotColor = "#71717a";
     if (dayTasks.some((t) => t.completed)) taskDotColor = "#16a34a";
@@ -192,6 +230,9 @@ export default function CalendarPage() {
         )}
         {dayEvents.length > 0 && (
           <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#2563eb" }} />
+        )}
+        {dayWorkspaceTasks.length > 0 && (
+          <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#7c3aed" }} />
         )}
       </div>
     );
@@ -501,6 +542,72 @@ export default function CalendarPage() {
                                       letterSpacing: "0.02em",
                                     }}
                                   >
+                                    P{task.priority}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Workspace Tasks */}
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#71717a" }}>
+                      Workspace Tasks
+                    </span>
+                    {selectedWorkspaceTasks.length > 0 && (
+                      <span style={{ fontSize: 10, fontWeight: 700, background: "#7c3aed", color: "white", padding: "1px 7px", borderRadius: 999 }}>
+                        {selectedWorkspaceTasks.length}
+                      </span>
+                    )}
+                  </div>
+
+                  {selectedWorkspaceTasks.length === 0 ? (
+                    <p style={{ fontSize: 13, color: "#a1a1aa", fontStyle: "italic" }}>No shared tasks due this day.</p>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {selectedWorkspaceTasks.map((task) => {
+                        const isOverdue = task.dueDate && !task.completed && new Date(task.dueDate) < new Date();
+                        const statusColor = task.completed ? "#16a34a" : isOverdue ? "#dc2626" : "#7c3aed";
+                        const statusLabel = task.completed ? "Done" : isOverdue ? "Overdue" : "Workspace";
+                        return (
+                          <div
+                            key={task.id}
+                            style={{ display: "flex", alignItems: "stretch", border: "2px solid #e4e4e7", borderRadius: CARD_IRREGULAR, overflow: "hidden", background: "white" }}
+                          >
+                            <div style={{ width: 4, background: statusColor, flexShrink: 0 }} />
+                            <div style={{ flex: 1, padding: "10px 14px" }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                                <div style={{ minWidth: 0 }}>
+                                  <div style={{ fontSize: 14, fontWeight: 600, color: "#111", marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                    {task.title}
+                                  </div>
+                                  <div style={{ display: "flex", flexWrap: "wrap", gap: "3px 8px" }}>
+                                    <span style={{ fontSize: 10, fontWeight: 700, color: "#7c3aed", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                                      {task.workspace.name}
+                                    </span>
+                                    <span style={{ fontSize: 10, fontWeight: 700, color: statusColor, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                                      {statusLabel}
+                                    </span>
+                                    {task.assignees.length > 0 && (
+                                      <span style={{ fontSize: 11, color: "#a1a1aa", fontWeight: 500 }}>
+                                        → {task.assignees.map(a => a.user.name ?? "unknown").join(", ")}
+                                      </span>
+                                    )}
+                                    {task.dueDate && (
+                                      <span style={{ fontSize: 11, color: "#a1a1aa", fontWeight: 500 }}>
+                                        {new Date(task.dueDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                {task.priority && (
+                                  <div style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", border: "2px solid #111", borderRadius: 4, background: PRIORITY_COLORS[task.priority] ?? "#fde047", color: "#111", flexShrink: 0 }}>
                                     P{task.priority}
                                   </div>
                                 )}

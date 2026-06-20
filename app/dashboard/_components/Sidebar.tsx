@@ -12,7 +12,8 @@ const NAV: ({ label: string; href: string } | { label: string; href: null })[] =
   { label: "AI",        href: "/dashboard/ai" },
   { label: "Calendar",  href: "/dashboard/calendar" },
   { label: "Timer",     href: "/dashboard/timer" },
-  { label: "Analytics", href: "/dashboard/analytics" },
+  { label: "Analytics",  href: "/dashboard/analytics" },
+  { label: "Workspace",  href: "/dashboard/workspace" },
 ];
 
 export default function Sidebar({ userName }: { userName: string | null }) {

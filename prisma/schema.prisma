@@ -16,11 +16,15 @@ model User {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
-  sessions   Session[]
-  accounts   Account[]
-  tasks      Task[]
-  categories UserCategory[]
-  events     Event[]
+  sessions              Session[]
+  accounts              Account[]
+  tasks                 Task[]
+  categories            UserCategory[]
+  events                Event[]
+  workspacesOwned          Workspace[]               @relation("WorkspaceOwner")
+  workspaceMemberships     WorkspaceMember[]
+  workspaceTasksCreated    WorkspaceTask[]           @relation("WorkspaceTaskCreator")
+  workspaceTaskAssignments WorkspaceTaskAssignee[]
 }
 
 model Task {
@@ -94,6 +98,59 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([providerId, accountId])
+}
+
+model Workspace {
+  id         String   @id @default(cuid())
+  name       String
+  inviteCode String   @unique
+  ownerId    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  owner   User              @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members WorkspaceMember[]
+  tasks   WorkspaceTask[]
+}
+
+model WorkspaceMember {
+  id          String   @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        String   @default("member")
+  joinedAt    DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+}
+
+model WorkspaceTask {
+  id          String    @id @default(cuid())
+  title       String
+  details     String?
+  priority    Int?
+  dueDate     DateTime?
+  completed   Boolean   @default(false)
+  workspaceId String
+  createdBy   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  workspace Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creator   User                  @relation("WorkspaceTaskCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  assignees WorkspaceTaskAssignee[]
+}
+
+model WorkspaceTaskAssignee {
+  taskId String
+  userId String
+
+  task WorkspaceTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, userId])
 }
 
 model Verification {

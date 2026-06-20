@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "@/lib/auth-client";
 
 function GoogleIcon() {
@@ -34,12 +34,17 @@ function EyeIcon({ open }: { open: boolean }) {
   );
 }
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [isGooglePending, startGoogleTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+
+  const rawCallback = searchParams.get("callbackUrl");
+  // Only allow internal redirects
+  const destination = rawCallback?.startsWith("/") ? rawCallback : "/dashboard";
 
   function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -52,19 +57,19 @@ export default function LoginPage() {
       const { error: authError } = await signIn.email({
         email,
         password,
-        callbackURL: "/dashboard",
+        callbackURL: destination,
       });
       if (authError) {
         setError(authError.message ?? "Invalid email or password.");
       } else {
-        router.push("/dashboard");
+        router.push(destination);
       }
     });
   }
 
   function handleGoogle() {
     startGoogleTransition(async () => {
-      await signIn.social({ provider: "google", callbackURL: "/dashboard" });
+      await signIn.social({ provider: "google", callbackURL: destination });
     });
   }
 
@@ -135,7 +140,7 @@ export default function LoginPage() {
               <p className="text-sm text-zinc-700">
                 No account?{" "}
                 <Link
-                  href="/signup"
+                  href={`/signup${rawCallback ? `?callbackUrl=${encodeURIComponent(rawCallback)}` : ""}`}
                   className="underline underline-offset-2 font-medium hover:text-black transition-colors"
                 >
                   Sign up
@@ -186,5 +191,13 @@ export default function LoginPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }
