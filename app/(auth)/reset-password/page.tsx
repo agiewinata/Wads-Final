@@ -34,13 +34,17 @@ function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <div className="flex flex-col gap-6 text-center">
-        <p className="text-sm text-red-600 font-medium">
+      <div className="flex flex-col gap-5 text-center">
+        <h1 className="hand" style={{ fontSize: 32, lineHeight: 1 }}>
+          oops, broken link
+        </h1>
+        <p className="text-sm font-medium" style={{ color: "#b5453d" }}>
           Invalid or missing reset token.
         </p>
         <Link
           href="/forgot-password"
-          className="mx-auto text-sm underline underline-offset-2 text-zinc-600 hover:text-black transition-colors"
+          className="mx-auto"
+          style={{ fontSize: 13.5, textDecoration: "underline" }}
         >
           Request a new link
         </Link>
@@ -68,77 +72,65 @@ function ResetPasswordForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-8">
-      <p className="text-sm text-zinc-500 -mb-2">Enter your new password.</p>
+    <>
+      <h1 className="hand text-center" style={{ fontSize: 34, lineHeight: 1 }}>
+        new password!
+      </h1>
+      <p className="text-center" style={{ opacity: 0.7, fontSize: 13.5, margin: "6px 0 28px" }}>
+        pick something you&apos;ll remember this time
+      </p>
 
-      <div className="relative">
-        <input
-          name="password"
-          type={showPassword ? "text" : "password"}
-          placeholder="new password..."
-          autoComplete="new-password"
-          required
-          minLength={8}
-          className="w-full bg-transparent text-lg text-zinc-800 placeholder-zinc-400 outline-none pb-1 pr-8"
-          style={{ borderBottom: "2.5px solid #111" }}
-        />
+      <form onSubmit={handleSubmit} className="flex flex-col">
+        <div style={{ marginBottom: 24, position: "relative" }}>
+          <div className="auth-label">New password</div>
+          <input
+            name="password"
+            type={showPassword ? "text" : "password"}
+            placeholder="at least 8 characters"
+            autoComplete="new-password"
+            required
+            minLength={8}
+            className="auth-input"
+            style={{ paddingRight: 28 }}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            className="absolute right-0 bottom-1.5 transition-opacity"
+            style={{ opacity: 0.55 }}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+          >
+            <EyeIcon open={showPassword} />
+          </button>
+        </div>
+
+        {error && (
+          <p className="text-sm font-medium" style={{ color: "#b5453d", marginBottom: 16 }}>
+            {error}
+          </p>
+        )}
+
         <button
-          type="button"
-          onClick={() => setShowPassword((v) => !v)}
-          className="absolute right-0 bottom-2 text-zinc-400 hover:text-zinc-700 transition-colors"
-          aria-label={showPassword ? "Hide password" : "Show password"}
+          type="submit"
+          disabled={isPending}
+          className="btn-ink"
+          style={{ display: "flex", margin: "4px auto 0" }}
         >
-          <EyeIcon open={showPassword} />
+          {isPending ? "Saving..." : "Reset password"}
         </button>
-      </div>
-
-      {error && (
-        <p className="text-sm text-red-600 -mt-4 font-medium">{error}</p>
-      )}
-
-      <button
-        type="submit"
-        disabled={isPending}
-        className="mx-auto px-10 py-2 text-base font-medium text-zinc-900 transition-all hover:bg-zinc-100 active:scale-95 disabled:opacity-50"
-        style={{
-          border: "3px solid #111",
-          borderRadius: "4px 6px 4px 6px / 6px 4px 6px 4px",
-        }}
-      >
-        {isPending ? "Saving..." : "Reset password"}
-      </button>
-    </form>
+      </form>
+    </>
   );
 }
 
 export default function ResetPasswordPage() {
   return (
-    <main className="min-h-screen bg-zinc-50 flex items-center justify-center p-4">
-      <div className="relative w-full max-w-sm">
-        {/* Clipboard clip */}
-        <div
-          className="absolute -top-5 left-1/2 -translate-x-1/2 w-16 h-8 bg-white z-10"
-          style={{
-            border: "4px solid #111",
-            borderRadius: "4px 4px 2px 2px",
-            boxShadow: "2px 2px 0 #111",
-          }}
-        />
-
-        {/* Card */}
-        <div
-          className="bg-white pt-12 pb-10 px-10 relative"
-          style={{
-            border: "4px solid #111",
-            borderRadius: "6px 8px 5px 7px / 7px 5px 8px 6px",
-            boxShadow: "6px 8px 0 rgba(0,0,0,0.18)",
-          }}
-        >
-          <Suspense fallback={<p className="text-sm text-zinc-400">Loading...</p>}>
-            <ResetPasswordForm />
-          </Suspense>
-        </div>
+    <div className="w-full max-w-[380px]">
+      <div className="sticky" style={{ padding: "40px 36px 30px" }}>
+        <Suspense fallback={<p style={{ fontSize: 13.5, opacity: 0.6 }}>Loading...</p>}>
+          <ResetPasswordForm />
+        </Suspense>
       </div>
-    </main>
+    </div>
   );
 }

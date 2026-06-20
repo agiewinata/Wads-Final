@@ -2,6 +2,161 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+:root {
+  --desk: #ece4d4;
+  --desk-grid: #e2d8c4;
+  --paper: #fcf9f2;
+  --paper-2: #f3ecdd;
+  --ink: #2b2722;
+  --ink-soft: #6f685d;
+  --ink-faint: #a69e8f;
+  --line: #e6dccb;
+  --line-strong: #d8ccb4;
+  --auth-accent: #3d4fa3;
+  --auth-accent-press: #30407f;
+  --accent-soft: #e7eaf7;
+  --accent-text: #2c3c7d;
+  --highlight: #f7d65f;
+  --note-yellow: #ffe27a;
+  --note-text: #4a3f2e;
+  --shadow-sm: 0 1px 2px rgba(43, 39, 34, 0.06);
+  --shadow: 0 2px 4px rgba(43, 39, 34, 0.07), 0 12px 26px -14px rgba(43, 39, 34, 0.24);
+  --shadow-lg: 0 3px 6px rgba(43, 39, 34, 0.08), 0 24px 50px -20px rgba(43, 39, 34, 0.32);
+  --font-head: var(--font-fraunces), serif;
+  --font-hand: var(--font-caveat), cursive;
+}
+
+.dark {
+  --desk: #15171c;
+  --desk-grid: #1c1f26;
+  --paper: #20242b;
+  --paper-2: #262b33;
+  --ink: #ece6da;
+  --ink-soft: #a7a093;
+  --ink-faint: #6f685c;
+  --line: #2e333c;
+  --line-strong: #3a414c;
+  --auth-accent: #93a4e8;
+  --auth-accent-press: #aab8ee;
+  --accent-soft: #262c3d;
+  --accent-text: #b9c4f0;
+  --highlight: #c9a73f;
+  --note-yellow: #c9aa3f;
+  --note-text: #f3eee2;
+}
+
+.desk-bg {
+  background-color: var(--desk);
+  background-image:
+    linear-gradient(var(--desk-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--desk-grid) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+
+.sticky {
+  position: relative;
+  color: var(--note-text);
+  background: var(--note-yellow);
+  border-radius: 3px;
+  box-shadow: var(--shadow-lg);
+  transform: rotate(-1.2deg);
+}
+.sticky::after {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  width: 74px;
+  height: 22px;
+  transform: translateX(-50%) rotate(-2deg);
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+.dark .sticky::after {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.hand {
+  font-family: var(--font-hand);
+}
+
+.btn-ink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 11px 34px;
+  border-radius: 11px;
+  background: var(--auth-accent);
+  color: #fff;
+  border: 1px solid var(--auth-accent);
+  transition: background 0.12s, transform 0.08s;
+}
+.btn-ink:hover {
+  background: var(--auth-accent-press);
+}
+.btn-ink:active {
+  transform: scale(0.97);
+}
+.btn-ink:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.btn-paper-auth {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 11px;
+  border: 1px solid rgba(74, 63, 46, 0.3);
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--note-text);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.dark .btn-paper-auth {
+  background: rgba(255, 255, 255, 0.08);
+}
+.btn-paper-auth:hover {
+  background: rgba(255, 255, 255, 0.75);
+}
+.btn-paper-auth:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.auth-input {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid rgba(74, 63, 46, 0.35);
+  font: inherit;
+  font-size: 17px;
+  color: var(--note-text);
+  outline: 0;
+  padding-bottom: 5px;
+}
+.auth-input::placeholder {
+  color: rgba(74, 63, 46, 0.4);
+}
+.auth-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.6;
+  margin-bottom: 6px;
+}
+
 /* ── react-calendar theme overrides (scoped to .themed-cal) ──────────────── */
 .themed-cal .react-calendar {
   width: 100%;

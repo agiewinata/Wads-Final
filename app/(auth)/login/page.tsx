@@ -7,7 +7,7 @@ import { signIn } from "@/lib/auth-client";
 
 function GoogleIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden>
+    <svg width="17" height="17" viewBox="0 0 48 48" aria-hidden>
       <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
       <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
       <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
@@ -74,123 +74,101 @@ function LoginForm() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-50 flex items-center justify-center p-4">
-      <div className="relative w-full max-w-sm">
-        {/* Clipboard clip */}
-        <div
-          className="absolute -top-5 left-1/2 -translate-x-1/2 w-16 h-8 bg-white z-10"
-          style={{
-            border: "4px solid #111",
-            borderRadius: "4px 4px 2px 2px",
-            boxShadow: "2px 2px 0 #111",
-          }}
-        />
+    <div className="w-full max-w-[380px]">
+      <div className="sticky" style={{ padding: "40px 36px 30px" }}>
+        <h1 className="hand text-center" style={{ fontSize: 38, lineHeight: 1 }}>
+          welcome back!
+        </h1>
+        <p className="text-center" style={{ opacity: 0.7, fontSize: 13.5, margin: "6px 0 28px" }}>
+          sign in to pick up where you left off
+        </p>
 
-        {/* Card */}
-        <div
-          className="bg-white pt-12 pb-10 px-10 relative"
-          style={{
-            border: "4px solid #111",
-            borderRadius: "6px 8px 5px 7px / 7px 5px 8px 6px",
-            boxShadow: "6px 8px 0 rgba(0,0,0,0.18)",
-          }}
-        >
-          <form onSubmit={handleSubmit} className="flex flex-col gap-8">
-            {/* Email */}
+        <form onSubmit={handleSubmit} className="flex flex-col">
+          {/* Email */}
+          <div style={{ marginBottom: 26 }}>
+            <div className="auth-label">Email</div>
             <input
               id="email"
               name="email"
               type="email"
-              placeholder="email..."
+              placeholder="you@student.edu"
               autoComplete="email"
               required
-              className="w-full bg-transparent text-lg text-zinc-800 placeholder-zinc-400 outline-none pb-1"
-              style={{ borderBottom: "2.5px solid #111" }}
+              className="auth-input"
             />
-
-            {/* Password */}
-            <div className="relative">
-              <input
-                id="password"
-                name="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="password..."
-                autoComplete="current-password"
-                required
-                className="w-full bg-transparent text-lg text-zinc-800 placeholder-zinc-400 outline-none pb-1 pr-8"
-                style={{ borderBottom: "2.5px solid #111" }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-0 bottom-2 text-zinc-400 hover:text-zinc-700 transition-colors"
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                <EyeIcon open={showPassword} />
-              </button>
-            </div>
-
-            {/* Error */}
-            {error && (
-              <p className="text-sm text-red-600 -mt-4 font-medium">{error}</p>
-            )}
-
-            {/* Sign up + forgot password links */}
-            <div className="flex items-center justify-between -mt-2">
-              <p className="text-sm text-zinc-700">
-                No account?{" "}
-                <Link
-                  href={`/signup${rawCallback ? `?callbackUrl=${encodeURIComponent(rawCallback)}` : ""}`}
-                  className="underline underline-offset-2 font-medium hover:text-black transition-colors"
-                >
-                  Sign up
-                </Link>
-              </p>
-              <Link
-                href="/forgot-password"
-                className="text-sm text-zinc-500 underline underline-offset-2 hover:text-black transition-colors"
-              >
-                Forgot?
-              </Link>
-            </div>
-
-            {/* Login button */}
-            <button
-              type="submit"
-              disabled={isPending}
-              className="mx-auto px-10 py-2 text-base font-medium text-zinc-900 transition-all hover:bg-zinc-100 active:scale-95 disabled:opacity-50"
-              style={{
-                border: "3px solid #111",
-                borderRadius: "4px 6px 4px 6px / 6px 4px 6px 4px",
-              }}
-            >
-              {isPending ? "Logging in..." : "Login"}
-            </button>
-          </form>
-
-          {/* Divider */}
-          <div className="flex items-center gap-3 my-6">
-            <div className="flex-1 h-px bg-zinc-300" />
-            <span className="text-xs text-zinc-400">or</span>
-            <div className="flex-1 h-px bg-zinc-300" />
           </div>
 
-          {/* Google button */}
+          {/* Password */}
+          <div style={{ marginBottom: 24, position: "relative" }}>
+            <div className="auth-label">Password</div>
+            <input
+              id="password"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              autoComplete="current-password"
+              required
+              className="auth-input"
+              style={{ paddingRight: 28 }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute right-0 bottom-1.5 transition-opacity"
+              style={{ opacity: 0.55 }}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              <EyeIcon open={showPassword} />
+            </button>
+          </div>
+
+          {error && (
+            <p className="text-sm font-medium" style={{ color: "#b5453d", marginBottom: 16 }}>
+              {error}
+            </p>
+          )}
+
           <button
-            onClick={handleGoogle}
-            disabled={isGooglePending}
-            className="w-full flex items-center justify-center gap-3 py-2 text-sm font-medium text-zinc-800 transition-all hover:bg-zinc-100 active:scale-95 disabled:opacity-50"
-            style={{
-              border: "3px solid #111",
-              borderRadius: "4px 6px 4px 6px / 6px 4px 6px 4px",
-            }}
+            type="submit"
+            disabled={isPending}
+            className="btn-ink"
+            style={{ display: "flex", margin: "4px auto 0" }}
           >
-            <GoogleIcon />
-            {isGooglePending ? "Redirecting..." : "Continue with Google"}
+            {isPending ? "Logging in..." : "Log in"}
           </button>
+        </form>
+
+        <div className="flex items-center gap-3" style={{ margin: "22px 0" }}>
+          <div className="flex-1 h-px" style={{ background: "rgba(74,63,46,.2)" }} />
+          <span style={{ fontSize: 12, opacity: 0.6 }}>or</span>
+          <div className="flex-1 h-px" style={{ background: "rgba(74,63,46,.2)" }} />
         </div>
+
+        <button
+          onClick={handleGoogle}
+          disabled={isGooglePending}
+          className="btn-paper-auth"
+        >
+          <GoogleIcon />
+          {isGooglePending ? "Redirecting..." : "Continue with Google"}
+        </button>
+
+        <p className="text-center" style={{ fontSize: 13.5, marginTop: 20 }}>
+          New here?{" "}
+          <Link
+            href={`/signup${rawCallback ? `?callbackUrl=${encodeURIComponent(rawCallback)}` : ""}`}
+            style={{ textDecoration: "underline", fontWeight: 600 }}
+          >
+            Create an account
+          </Link>
+        </p>
+        <p className="text-center" style={{ fontSize: 12.5, marginTop: 8, opacity: 0.65 }}>
+          <Link href="/forgot-password" style={{ textDecoration: "underline" }}>
+            Forgot password?
+          </Link>
+        </p>
       </div>
-    </main>
+    </div>
   );
 }
 
