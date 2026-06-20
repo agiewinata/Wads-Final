@@ -80,7 +80,7 @@ describe('POST /api/ai/chat', () => {
     expect(await drainStream(res)).toBe('Hello, world')
   })
 
-  it('uses vision model gemma4:e4b when images are attached', async () => {
+  it('uses gemma4:26b when images are attached', async () => {
     mockGetSession.mockResolvedValue(FAKE_SESSION as never)
     const fetchMock = jest.fn().mockResolvedValue({ ok: true, body: ndjsonStream(['ok']) })
     global.fetch = fetchMock
@@ -91,10 +91,10 @@ describe('POST /api/ai/chat', () => {
     }))
 
     const sentBody = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string)
-    expect(sentBody.model).toBe('gemma4:e4b')
+    expect(sentBody.model).toBe('gemma4:26b')
   })
 
-  it('uses default model llama3.1:8b when no images are attached', async () => {
+  it('uses default model gemma4:26b when no images are attached', async () => {
     mockGetSession.mockResolvedValue(FAKE_SESSION as never)
     const fetchMock = jest.fn().mockResolvedValue({ ok: true, body: ndjsonStream(['ok']) })
     global.fetch = fetchMock
@@ -102,7 +102,7 @@ describe('POST /api/ai/chat', () => {
     await POST(makeReq({ messages: [{ role: 'user', content: 'hi' }] }))
 
     const sentBody = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string)
-    expect(sentBody.model).toBe('llama3.1:8b')
+    expect(sentBody.model).toBe('gemma4:26b')
   })
 
   it('includes system prompt with task snapshot', async () => {

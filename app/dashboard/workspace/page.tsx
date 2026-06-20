@@ -200,13 +200,13 @@ export default function WorkspacePage() {
 
   // Modals
   const [showCreate, setShowCreate]   = useState(false);
-  const [showJoin, setShowJoin]       = useState(false);
+  const [showJoin, setShowJoin]       = useState(() => !!searchParams.get("join"));
   const [showAddTask, setShowAddTask] = useState(false);
   const [editingTask, setEditingTask] = useState<WTask | null>(null);
 
   // Form state
   const [newName, setNewName]               = useState("");
-  const [joinCode, setJoinCode]             = useState("");
+  const [joinCode, setJoinCode]             = useState(() => searchParams.get("join") ?? "");
   const [taskTitle, setTaskTitle]           = useState("");
   const [taskDetails, setTaskDetails]       = useState("");
   const [taskPriority, setTaskPriority]     = useState<number | null>(null);
@@ -242,21 +242,29 @@ export default function WorkspacePage() {
     setDetailLoading(false);
   }, []);
 
-  useEffect(() => { fetchWorkspaces(); }, [fetchWorkspaces]);
+  useEffect(() => {
+    setLoading(true);
+    fetch("/api/workspaces")
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => { if (data) setWorkspaces(data); })
+      .finally(() => setLoading(false));
+  }, []);
 
   useEffect(() => {
-    if (selectedId) fetchDetail(selectedId);
-    else { setDetail(null); setDetailError(""); }
-  }, [selectedId, fetchDetail]);
+    if (!selectedId) { setDetail(null); setDetailError(""); return; }
+    setDetailLoading(true);
+    setDetailError("");
+    setDetail(null);
+    fetch(`/api/workspaces/${selectedId}`)
+      .then(res => res.ok ? res.json() : res.json().then((b: { error?: string }) => Promise.reject(b)))
+      .then((data: WorkspaceDetail) => setDetail(data))
+      .catch((err: { error?: string }) => setDetailError(err?.error ?? "Failed to load workspace"))
+      .finally(() => setDetailLoading(false));
+  }, [selectedId]);
 
-  // Auto-join from invite link (?join=<code>)
+  // Auto-join from invite link (?join=<code>) — only redirect, state already initialised above
   useEffect(() => {
-    const code = searchParams.get("join");
-    if (code) {
-      setJoinCode(code);
-      setShowJoin(true);
-      router.replace("/dashboard/workspace");
-    }
+    if (searchParams.get("join")) router.replace("/dashboard/workspace");
   }, [searchParams, router]);
 
   async function handleCreate() {
