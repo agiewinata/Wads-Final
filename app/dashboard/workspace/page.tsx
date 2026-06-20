@@ -243,7 +243,7 @@ export default function WorkspacePage() {
   }, []);
 
   useEffect(() => {
-    setLoading(true);
+    // loading starts true; set workspaces then clear loading — all inside callbacks
     fetch("/api/workspaces")
       .then(res => (res.ok ? res.json() : null))
       .then(data => { if (data) setWorkspaces(data); })
@@ -251,11 +251,13 @@ export default function WorkspacePage() {
   }, []);
 
   useEffect(() => {
-    if (!selectedId) { setDetail(null); setDetailError(""); return; }
-    setDetailLoading(true);
-    setDetailError("");
-    setDetail(null);
-    fetch(`/api/workspaces/${selectedId}`)
+    if (!selectedId) {
+      Promise.resolve().then(() => { setDetail(null); setDetailError(""); });
+      return;
+    }
+    Promise.resolve()
+      .then(() => { setDetailLoading(true); setDetailError(""); setDetail(null); })
+      .then(() => fetch(`/api/workspaces/${selectedId}`))
       .then(res => res.ok ? res.json() : res.json().then((b: { error?: string }) => Promise.reject(b)))
       .then((data: WorkspaceDetail) => setDetail(data))
       .catch((err: { error?: string }) => setDetailError(err?.error ?? "Failed to load workspace"))
