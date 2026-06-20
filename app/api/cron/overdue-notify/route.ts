@@ -1,14 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import nodemailer from "nodemailer";
-
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
-  },
-});
+import { mailer } from "@/lib/mailer";
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
@@ -48,7 +40,7 @@ export async function GET(req: NextRequest) {
 
   const results = await Promise.allSettled(
     users.map((user) =>
-      transporter.sendMail({
+      mailer.sendMail({
         from: `"Quest Planner" <${process.env.GMAIL_USER}>`,
         to: user.email,
         subject: `You have ${user.tasks.length} overdue task${user.tasks.length === 1 ? "" : "s"} — Quest Planner`,
