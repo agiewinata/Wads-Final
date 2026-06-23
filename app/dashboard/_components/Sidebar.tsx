@@ -95,10 +95,10 @@ export default function Sidebar({ userName }: { userName: string | null }) {
           </div>
           <div>
             <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 18, letterSpacing: "-0.01em", color: "var(--ink)" }}>
-              Studyhall
+              Quest Class
             </div>
-            <div style={{ fontSize: 10.5, fontWeight: 500, color: "var(--ink-faint)", letterSpacing: "0.02em" }}>
-              focus · plan · grow
+            <div style={{ fontSize: 9.5, fontWeight: 500, color: "var(--ink-faint)", letterSpacing: "0.01em", lineHeight: 1.2 }}>
+              Study Planner & Productivity Tracker
             </div>
           </div>
         </div>

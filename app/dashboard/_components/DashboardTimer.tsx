@@ -18,8 +18,8 @@ function fmt(secondsLeft: number) {
 function AlarmClock({ progress }: { progress: number }) {
   const angle = (1 - progress) * 360;          // 0 at start (12 o'clock), grows clockwise
   const th = (angle * Math.PI) / 180;
-  const hx = 100 + Math.sin(th) * 58;
-  const hy = 100 - Math.cos(th) * 58;
+  const hx = 100 + Math.sin(th) * 48;
+  const hy = 100 - Math.cos(th) * 48;
 
   const ticks = [0, 3, 6, 9].map((i) => {
     const a = (i / 12) * 2 * Math.PI;
@@ -43,10 +43,12 @@ function AlarmClock({ progress }: { progress: number }) {
       <circle cx="100" cy="100" r="67" fill="var(--paper)" stroke="var(--line-strong)" strokeWidth="2" />
       {ticks}
       {/* hour hand fixed at 12 */}
-      <line x1="100" y1="100" x2="100" y2="66" stroke="var(--ink)" strokeWidth="6" strokeLinecap="round" />
-      {/* minute hand (sweeps with progress) */}
-      <line x1="100" y1="100" x2={hx} y2={hy} stroke="var(--accent)" strokeWidth="4" strokeLinecap="round" />
-      <circle cx="100" cy="100" r="6" fill="var(--accent)" />
+      <line x1="100" y1="100" x2="100" y2="72" stroke="var(--ink)" strokeWidth="4" strokeLinecap="round" />
+
+      {/* minute hand */}
+      <line x1="100" y1="100" x2={hx} y2={hy} stroke="var(--ink)" strokeWidth="4" strokeLinecap="round" />
+
+      <circle cx="100" cy="100" r="6" fill="var(--ink)" />
       <circle cx="100" cy="100" r="2.5" fill="var(--paper)" />
     </svg>
   );
@@ -115,14 +117,29 @@ export default function DashboardTimer() {
         <div className="flex-1 flex items-center" style={{ gap: 22, minHeight: 0 }}>
           <AlarmClock progress={progress} />
 
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--ink-faint)", marginBottom: 4 }}>{innerModeLabel}</div>
-            <div style={{ fontFamily: "var(--font-heading)", fontSize: 44, fontWeight: 600, color: "var(--ink)", lineHeight: 1, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>
+          <div
+            style={{
+              flex: 1,
+              minWidth: 0,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
+            <div style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--ink-faint)", marginBottom: 4, textAlign: "center", }}>{innerModeLabel}</div>
+            <div style={{ fontFamily: "var(--font-heading)", fontSize: 44, fontWeight: 600, color: "var(--ink)", lineHeight: 1, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", textAlign: "center", }}>
               {fmt(secondsLeft)}
             </div>
 
             {/* quick select */}
-            <div style={{ display: "flex", gap: 6, marginTop: 16 }}>
+            <div
+              style={{
+                display: "flex",
+                gap: 6,
+                marginTop: 16,
+                width: 320,
+              }}
+            >
               {([{ key: "focus", label: "Focus" }, { key: "shortBreak", label: "Short" }, { key: "longBreak", label: "Long" }] as const).map(({ key, label }) => (
                 <button key={key} onClick={() => setModeAndReset(key)}
                   style={{ flex: 1, padding: "7px 0", fontSize: 12, fontWeight: 600, borderRadius: 999, cursor: "pointer",
@@ -135,7 +152,16 @@ export default function DashboardTimer() {
             </div>
 
             {/* controls */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 12,
+                marginTop: 14,
+                width: 320,
+              }}
+            >
               <button onClick={() => setScreen("settings")} className="grid place-items-center" title="Settings"
                 style={{ width: 40, height: 40, borderRadius: "50%", border: "1px solid var(--line-strong)", background: "var(--paper)", color: "var(--ink-soft)", cursor: "pointer" }}>
                 <Settings size={16} />

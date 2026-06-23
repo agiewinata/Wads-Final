@@ -39,7 +39,7 @@ export default function RecommendationWidget() {
               AI powered
             </div>
             <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 17, fontWeight: 600, letterSpacing: "-0.01em", color: "var(--ink)", lineHeight: 1 }}>
-              For you today
+              Recommendations
             </h2>
           </div>
         </div>

@@ -67,6 +67,25 @@ export default function DashboardCalendar() {
              cur <= new Date(e.getFullYear(), e.getMonth(), e.getDate());
     });
   }
+  function getTaskDotColor(d: Date) {
+    const dayTasks = tasks.filter(
+      (t) => t.dueDate && sameDay(new Date(t.dueDate), d)
+    );
+
+    if (dayTasks.some((t) => t.completed)) return "var(--good)";
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const dStart = new Date(d);
+    dStart.setHours(0, 0, 0, 0);
+
+    if (dayTasks.some((t) => !t.completed && dStart < todayStart)) {
+      return "var(--bad)";
+    }
+
+    return "var(--warn)";
+  }
 
   const cells = useMemo(() => {
     const first = new Date(view.y, view.m, 1);
@@ -140,8 +159,26 @@ export default function DashboardCalendar() {
                   {date.getDate()}
                   {(hasT || hasE) && !isSel && (
                     <span style={{ position: "absolute", bottom: 3, display: "flex", gap: 2 }}>
-                      {hasT && <span style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--ink)" }} />}
-                      {hasE && <span style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--accent)" }} />}
+                      {hasT && (
+                        <span
+                          style={{
+                            width: 4,
+                            height: 4,
+                            borderRadius: "50%",
+                            background: getTaskDotColor(date),
+                          }}
+                        />
+                      )}
+                      {hasE && (
+                        <span
+                          style={{
+                            width: 4,
+                            height: 4,
+                            borderRadius: "50%",
+                            background: "var(--accent)",
+                          }}
+                        />
+                      )}
                     </span>
                   )}
                 </button>
@@ -167,7 +204,7 @@ export default function DashboardCalendar() {
                     <div style={{ width: 3, background: stripe, flexShrink: 0 }} />
                     <div style={{ padding: "6px 10px", minWidth: 0 }}>
                       <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.title}</div>
-                      <div style={{ fontSize: 10, fontWeight: 600, color: stripe, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 1 }}>{t.completed ? "Done" : overdue ? "Overdue" : "Task"}</div>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: stripe, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 1 }}>{t.completed ? "Done" : overdue ? "Overdue" : "Ongoing"}</div>
                     </div>
                   </div>
                 );
