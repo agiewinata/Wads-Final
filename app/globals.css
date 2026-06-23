@@ -2,21 +2,14 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* ============================================================================
-   STUDY-DESK THEME  —  tokens + skeuomorphic toolkit
-   Everything is driven by CSS variables so light/dark "just works".
-   ========================================================================== */
-
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  /* map fonts (defined in app/layout.tsx via next/font) */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-fraunces);
   --font-hand: var(--font-caveat);
 
-  /* shadcn passthroughs (unchanged) */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -60,8 +53,8 @@
   --secondary-foreground: #2b347a;
   --muted: #f2f0e8;
   --muted-foreground: #6f685d;
-  --accent: #e8eaff;
-  --accent-foreground: #2b347a;
+  --accent: #4653b8;
+  --accent-foreground: #ffffff;
   --destructive: #b5453d;
   --border: #ddd3bf;
   --input: #ddd3bf;
@@ -75,47 +68,51 @@
 
   --radius: 0.7rem;
 
-  --desk:        #efe8d8;
-  --desk-grid:   #e1d7c4;
-  --paper:       #fffdf7;
-  --paper-2:     #f7f3ea;
-  --ink:         #2b2722;
-  --ink-soft:    #64748b;
-  --ink-faint:   #a69e8f;
-  --line:        #e1d7c4;
+  --desk: #efe8d8;
+  --desk-grid: #e1d7c4;
+  --paper: #fffdf7;
+  --paper-2: #f7f3ea;
+  --ink: #2b2722;
+  --ink-soft: #64748b;
+  --ink-faint: #a69e8f;
+  --line: #e1d7c4;
   --line-strong: #d5c8b3;
 
-  --rule:        #313b55;
-  --margin:      #e0a3a3;
+  --rule: #313b55;
+  --margin: #e0a3a3;
 
-  --accent:      #4653b8;
-  --accent-press:#35429f;
+  --accent-press: #35429f;
   --accent-soft: #e8eaff;
   --accent-text: #2f3b94;
 
-  --highlight:   #f7d65f;
+  --highlight: #f7d65f;
 
-  --good:        #3f7a4f;
-  --good-soft:   #e3efe2;
-  --warn:        #b9791b;
-  --warn-soft:   #f6ead0;
-  --bad:         #b5453d;
-  --bad-soft:    #f6e0dd;
-  --pin:         #e99391;
+  --good: #3f7a4f;
+  --good-soft: #e3efe2;
+  --warn: #b9791b;
+  --warn-soft: #f6ead0;
+  --bad: #b5453d;
+  --bad-soft: #f6e0dd;
+  --pin: #e99391;
 
-  --note-yellow:#ffe27a;
-  --note-yellow-edge:#f2cf52;
-  --note-pink:  #ffc2cf;
-  --note-pink-edge:#f29db0;
-  --note-mint:  #c5ebc2;
-  --note-mint-edge:#a3d9a0;
-  --note-blue:  #b9dcff;
-  --note-blue-edge:#93c4f0;
-  --note-text:  #475569;
+  --note-yellow: #ffe27a;
+  --note-yellow-edge: #f2cf52;
+  --note-pink: #ffc2cf;
+  --note-pink-edge: #f29db0;
+  --note-mint: #c5ebc2;
+  --note-mint-edge: #a3d9a0;
+  --note-blue: #b9dcff;
+  --note-blue-edge: #93c4f0;
+  --note-text: #475569;
 
-  --shadow-sm: 0 1px 2px rgba(43,39,34,.06);
-  --shadow:    0 2px 4px rgba(43,39,34,.07), 0 12px 26px -14px rgba(43,39,34,.24);
-  --shadow-lg: 0 3px 6px rgba(43,39,34,.08), 0 24px 50px -20px rgba(43,39,34,.32);
+  --auth-line: rgba(74, 63, 46, 0.35);
+  --auth-line-focus: #4653b8;
+  --auth-button-bg: rgba(255, 255, 255, 0.45);
+  --auth-button-hover: rgba(255, 255, 255, 0.65);
+
+  --shadow-sm: 0 1px 2px rgba(43, 39, 34, 0.06);
+  --shadow: 0 2px 4px rgba(43, 39, 34, 0.07), 0 12px 26px -14px rgba(43, 39, 34, 0.24);
+  --shadow-lg: 0 3px 6px rgba(43, 39, 34, 0.08), 0 24px 50px -20px rgba(43, 39, 34, 0.32);
 }
 
 .dark {
@@ -149,10 +146,9 @@
   --line: #303642;
   --line-strong: #3b4352;
 
-  --rule: #313b55;
+  --rule: rgba(255, 255, 255, 0.22);
   --margin: #8d5353;
 
-  --accent: #8fa2ff;
   --accent-press: #a7b6ff;
   --accent-soft: #28304a;
   --accent-text: #d8dfff;
@@ -177,23 +173,37 @@
   --note-blue-edge: #5876a2;
   --note-text: #fff7e8;
 
-  --shadow-sm: 0 1px 2px rgba(0,0,0,.35);
-  --shadow: 0 2px 5px rgba(0,0,0,.35), 0 16px 34px -16px rgba(0,0,0,.65);
-  --shadow-lg: 0 3px 8px rgba(0,0,0,.45), 0 30px 60px -22px rgba(0,0,0,.8);
+  --auth-line: rgba(255, 255, 255, 0.28);
+  --auth-line-focus: #8fa2ff;
+  --auth-button-bg: rgba(255, 255, 255, 0.12);
+  --auth-button-hover: rgba(255, 255, 255, 0.18);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow: 0 2px 5px rgba(0, 0, 0, 0.35), 0 16px 34px -16px rgba(0, 0, 0, 0.65);
+  --shadow-lg: 0 3px 8px rgba(0, 0, 0, 0.45), 0 30px 60px -22px rgba(0, 0, 0, 0.8);
 }
 
 @layer base {
-  * { @apply border-border outline-ring/50; }
-  body { @apply bg-background text-foreground; }
-  html { @apply font-sans; }
-  h1,h2,h3,h4 { font-family: var(--font-heading); }
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  html {
+    @apply font-sans;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-heading);
+  }
 }
 
-/* ============================================================================
-   SKEUOMORPHIC STUDY TOOLKIT  —  reusable classes
-   ========================================================================== */
-
-/* --- the desk: faint graph-paper grid --- */
 .desk-bg {
   background-color: var(--desk);
   background-image:
@@ -202,16 +212,17 @@
   background-size: 26px 26px;
 }
 
-/* --- paper card --- */
 .paper {
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 14px;
   box-shadow: var(--shadow);
 }
-.paper-2 { background: var(--paper-2); }
 
-/* --- notebook ruled paper (tasks) --- */
+.paper-2 {
+  background: var(--paper-2);
+}
+
 .ruled {
   background-color: var(--paper);
   background-image:
@@ -219,7 +230,6 @@
     repeating-linear-gradient(var(--paper) 0, var(--paper) 47px, var(--rule) 47px, var(--rule) 48px);
 }
 
-/* --- sticky note --- */
 .sticky {
   position: relative;
   background: var(--note-yellow);
@@ -229,29 +239,56 @@
   padding: 18px;
   transform: rotate(-1.2deg);
 }
-.sticky::after {              /* tape strip */
+
+.sticky::after {
   content: "";
   position: absolute;
-  top: -10px; left: 50%;
-  width: 74px; height: 22px;
+  top: -10px;
+  left: 50%;
+  width: 74px;
+  height: 22px;
   transform: translateX(-50%) rotate(-2deg);
-  background: rgba(255,255,255,.45);
-  border: 1px solid rgba(0,0,0,.06);
-  box-shadow: 0 1px 2px rgba(0,0,0,.12);
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
 }
-.dark .sticky::after { background: rgba(255,255,255,.14); }
-.sticky--yellow { background: var(--note-yellow); }
-.sticky--pink   { background: var(--note-pink); }
-.sticky--mint   { background: var(--note-mint); }
-.sticky--blue   { background: var(--note-blue); }
-.sticky--flat   { transform: none; }
-.sticky--r2     { transform: rotate(1.4deg); }
 
-.profile-card { color: var(--ink); }
+.dark .sticky::after {
+  background: rgba(255, 255, 255, 0.14);
+}
 
-.hand { font-family: var(--font-hand); }
+.sticky--yellow {
+  background: var(--note-yellow);
+}
 
-/* --- flashcard / index card --- */
+.sticky--pink {
+  background: var(--note-pink);
+}
+
+.sticky--mint {
+  background: var(--note-mint);
+}
+
+.sticky--blue {
+  background: var(--note-blue);
+}
+
+.sticky--flat {
+  transform: none;
+}
+
+.sticky--r2 {
+  transform: rotate(1.4deg);
+}
+
+.profile-card {
+  color: var(--ink);
+}
+
+.hand {
+  font-family: var(--font-hand);
+}
+
 .flashcard {
   position: relative;
   background: var(--paper);
@@ -260,20 +297,29 @@
   box-shadow: var(--shadow-sm);
   padding: 12px 14px 12px 18px;
 }
-.flashcard::before {          /* red index line */
+
+.flashcard::before {
   content: "";
-  position: absolute; left: 0; right: 0; top: 30px;
-  height: 1px; background: var(--margin); opacity: .6;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 30px;
+  height: 1px;
+  background: var(--margin);
+  opacity: 0.6;
 }
 
-/* --- phone frame (timer) --- */
 .phone {
   background: #1b1d22;
   border-radius: 34px;
   padding: 12px;
-  box-shadow: var(--shadow-lg), inset 0 0 0 2px rgba(255,255,255,.04);
+  box-shadow: var(--shadow-lg), inset 0 0 0 2px rgba(255, 255, 255, 0.04);
 }
-.dark .phone { background: #0d0e12; }
+
+.dark .phone {
+  background: #0d0e12;
+}
+
 .phone-screen {
   background: var(--paper);
   border-radius: 24px;
@@ -281,88 +327,307 @@
   position: relative;
   height: 100%;
 }
+
 .phone-notch {
-  position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
-  width: 76px; height: 18px; background: #1b1d22; border-radius: 0 0 12px 12px; z-index: 3;
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 76px;
+  height: 18px;
+  background: #1b1d22;
+  border-radius: 0 0 12px 12px;
+  z-index: 3;
 }
 
-/* --- wall / tear-off calendar --- */
-.wall-cal { background: var(--paper); border:1px solid var(--line-strong); border-radius:12px; box-shadow:var(--shadow); overflow:hidden; }
+.wall-cal {
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
 .wall-cal-binding {
-  height: 14px; background: var(--accent); position: relative;
-  display: flex; justify-content: center; gap: 26px; align-items: flex-end;
+  height: 14px;
+  background: var(--accent);
+  position: relative;
+  display: flex;
+  justify-content: center;
+  gap: 26px;
+  align-items: flex-end;
 }
-.wall-cal-binding span { width: 8px; height: 16px; background: var(--paper-2); border:1px solid var(--line-strong); border-radius:4px; margin-bottom:-7px; }
 
-/* --- push pin --- */
+.wall-cal-binding span {
+  width: 8px;
+  height: 16px;
+  background: var(--paper-2);
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  margin-bottom: -7px;
+}
+
 .pin {
-  width: 16px; height: 16px; border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, #fff6, transparent 45%), var(--pin);
-  box-shadow: 0 2px 3px rgba(0,0,0,.3);
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.3);
 }
 
-/* --- washi tape strip --- */
 .tape {
-  width: 80px; height: 26px;
-  background: repeating-linear-gradient(45deg, var(--accent-soft), var(--accent-soft) 6px, transparent 6px, transparent 12px), var(--paper-2);
-  border: 1px dashed var(--line-strong); opacity: .9;
+  width: 80px;
+  height: 26px;
+  background:
+    repeating-linear-gradient(45deg, var(--accent-soft), var(--accent-soft) 6px, transparent 6px, transparent 12px),
+    var(--paper-2);
+  border: 1px dashed var(--line-strong);
+  opacity: 0.9;
 }
 
-/* --- buttons --- */
 .btn-ink {
-  display:inline-flex; align-items:center; gap:8px; cursor:pointer;
-  font-weight:600; font-size:14px; padding:9px 16px; border-radius:11px;
-  background: var(--accent); color:#fff; border:1px solid var(--accent);
-  transition:.14s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 9px 16px;
+  border-radius: 11px;
+  background: var(--accent);
+  color: #fff;
+  border: 1px solid var(--accent);
+  transition: 0.14s;
 }
-.btn-ink:hover { background: var(--accent-press); border-color: var(--accent-press); }
-.btn-ink:active { transform: scale(.97); }
+
+.btn-ink:hover {
+  background: var(--accent-press);
+  border-color: var(--accent-press);
+}
+
+.btn-ink:active {
+  transform: scale(0.97);
+}
+
 .btn-paper {
-  display:inline-flex; align-items:center; gap:8px; cursor:pointer;
-  font-weight:600; font-size:14px; padding:9px 16px; border-radius:11px;
-  background: var(--paper); color: var(--ink); border:1px solid var(--line-strong);
-  transition:.14s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 9px 16px;
+  border-radius: 11px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
+  transition: 0.14s;
 }
-.btn-paper:hover { border-color: var(--ink-faint); }
-.btn-paper:active { transform: scale(.97); }
 
-/* --- pills / chips --- */
-.pill { font-size:10.5px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; padding:3px 9px; border-radius:999px; }
-.pill-assignment { background: var(--accent-soft); color: var(--accent-text); }
-.pill-project    { background: var(--good-soft);   color: var(--good); }
-.pill-exam       { background: var(--bad-soft);    color: var(--bad); }
+.btn-paper:hover {
+  border-color: var(--ink-faint);
+}
 
-/* highlighter swipe under a title */
-.swipe { position: relative; display: inline-block; }
+.btn-paper:active {
+  transform: scale(0.97);
+}
+
+.btn-paper-auth {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid var(--auth-line);
+  background: var(--auth-button-bg);
+  color: var(--note-text);
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.14s;
+}
+
+.btn-paper-auth:hover {
+  background: var(--auth-button-hover);
+}
+
+.btn-paper-auth:active {
+  transform: scale(0.98);
+}
+
+.auth-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--note-text);
+  margin-bottom: 6px;
+}
+
+.auth-input {
+  width: 100%;
+  border: none;
+  border-bottom: 2px solid var(--auth-line);
+  background: transparent;
+  outline: none;
+  padding: 4px 0 8px;
+  font-size: 15px;
+  color: var(--note-text);
+}
+
+.auth-input::placeholder {
+  color: color-mix(in srgb, var(--note-text) 55%, transparent);
+}
+
+.auth-input:focus {
+  border-bottom-color: var(--auth-line-focus);
+}
+
+.pill {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+
+.pill-assignment {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.pill-project {
+  background: var(--good-soft);
+  color: var(--good);
+}
+
+.pill-exam {
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+
+.swipe {
+  position: relative;
+  display: inline-block;
+}
+
 .swipe::after {
-  content:""; position:absolute; left:-3px; right:-3px; bottom:2px; height:11px;
-  background: var(--highlight); opacity:.5; border-radius:3px; transform: rotate(-.4deg); z-index:-1;
+  content: "";
+  position: absolute;
+  left: -3px;
+  right: -3px;
+  bottom: 2px;
+  height: 11px;
+  background: var(--highlight);
+  opacity: 0.5;
+  border-radius: 3px;
+  transform: rotate(-0.4deg);
+  z-index: -1;
 }
 
-/* ── react-calendar theme overrides (now token-driven) ────────────────────── */
-.themed-cal .react-calendar { width: 100%; border: none; font-family: inherit; background: transparent; line-height: 1.4; }
-.themed-cal .react-calendar__navigation { display: flex; height: 40px; margin-bottom: 6px; }
+.themed-cal .react-calendar {
+  width: 100%;
+  border: none;
+  font-family: inherit;
+  background: transparent;
+  line-height: 1.4;
+}
+
+.themed-cal .react-calendar__navigation {
+  display: flex;
+  height: 40px;
+  margin-bottom: 6px;
+}
+
 .themed-cal .react-calendar__navigation button {
-  background: none; border: none; font-size: 13px; font-weight: 600; color: var(--ink);
-  cursor: pointer; padding: 0 6px; border-radius: 6px; min-width: 32px; transition: background .12s;
+  background: none;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0 6px;
+  border-radius: 6px;
+  min-width: 32px;
+  transition: background 0.12s;
 }
-.themed-cal .react-calendar__navigation button:hover { background: var(--paper-2); }
-.themed-cal .react-calendar__navigation button:disabled { color: var(--ink-faint); }
-.themed-cal .react-calendar__navigation__label { font-size: 14px !important; font-weight: 600 !important; letter-spacing: -.02em !important; flex-grow: 1; color: var(--ink); }
-.themed-cal .react-calendar__month-view__weekdays { text-align: center; margin-bottom: 2px; }
-.themed-cal .react-calendar__month-view__weekdays__weekday { padding: 6px 0; }
+
+.themed-cal .react-calendar__navigation button:hover {
+  background: var(--paper-2);
+}
+
+.themed-cal .react-calendar__navigation button:disabled {
+  color: var(--ink-faint);
+}
+
+.themed-cal .react-calendar__navigation__label {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em !important;
+  flex-grow: 1;
+  color: var(--ink);
+}
+
+.themed-cal .react-calendar__month-view__weekdays {
+  text-align: center;
+  margin-bottom: 2px;
+}
+
+.themed-cal .react-calendar__month-view__weekdays__weekday {
+  padding: 6px 0;
+}
+
 .themed-cal .react-calendar__month-view__weekdays__weekday abbr {
-  text-decoration: none; font-size: 10px; font-weight: 600; text-transform: uppercase;
-  letter-spacing: .06em; color: var(--ink-faint);
+  text-decoration: none;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
 }
+
 .themed-cal .react-calendar__tile {
-  background: none; border: none; padding: 12px 4px; font-size: 14px; font-weight: 500;
-  color: var(--ink); cursor: pointer; border-radius: 6px; transition: background .12s; position: relative; text-align: center;
+  background: none;
+  border: none;
+  padding: 12px 4px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.12s;
+  position: relative;
+  text-align: center;
 }
-.themed-cal .react-calendar__tile:hover:not(.react-calendar__tile--active) { background: var(--paper-2); }
-.themed-cal .react-calendar__tile--now { font-weight: 600; box-shadow: inset 0 0 0 2px var(--accent); background: none; }
-.themed-cal .react-calendar__tile--now:hover { background: var(--paper-2); }
-.themed-cal .react-calendar__tile--active { background: var(--accent) !important; color: #fff !important; font-weight: 600; }
-.themed-cal .react-calendar__month-view__days__day--weekend { color: var(--ink-soft); }
-.themed-cal .react-calendar__month-view__days__day--neighboringMonth { color: var(--ink-faint); }
-.themed-cal .react-calendar__tile--active.react-calendar__month-view__days__day--weekend { color: #fff !important; }
+
+.themed-cal .react-calendar__tile:hover:not(.react-calendar__tile--active) {
+  background: var(--paper-2);
+}
+
+.themed-cal .react-calendar__tile--now {
+  font-weight: 600;
+  box-shadow: inset 0 0 0 2px var(--accent);
+  background: none;
+}
+
+.themed-cal .react-calendar__tile--now:hover {
+  background: var(--paper-2);
+}
+
+.themed-cal .react-calendar__tile--active {
+  background: var(--accent) !important;
+  color: #fff !important;
+  font-weight: 600;
+}
+
+.themed-cal .react-calendar__month-view__days__day--weekend {
+  color: var(--ink-soft);
+}
+
+.themed-cal .react-calendar__month-view__days__day--neighboringMonth {
+  color: var(--ink-faint);
+}
+
+.themed-cal .react-calendar__tile--active.react-calendar__month-view__days__day--weekend {
+  color: #fff !important;
+}
