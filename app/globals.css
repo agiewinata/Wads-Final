@@ -80,12 +80,12 @@
   --paper:       #fffdf7;
   --paper-2:     #f7f3ea;
   --ink:         #2b2722;
-  --ink-soft:    #6f685d;
+  --ink-soft:    #64748b;
   --ink-faint:   #a69e8f;
   --line:        #e1d7c4;
   --line-strong: #d5c8b3;
 
-  --rule:        #cdd7ec;
+  --rule:        #313b55;
   --margin:      #e0a3a3;
 
   --accent:      #4653b8;
@@ -111,7 +111,7 @@
   --note-mint-edge:#a3d9a0;
   --note-blue:  #b9dcff;
   --note-blue-edge:#93c4f0;
-  --note-text:  #4a3f2e;
+  --note-text:  #475569;
 
   --shadow-sm: 0 1px 2px rgba(43,39,34,.06);
   --shadow:    0 2px 4px rgba(43,39,34,.07), 0 12px 26px -14px rgba(43,39,34,.24);
@@ -144,7 +144,7 @@
   --paper: #1d222b;
   --paper-2: #252b36;
   --ink: #f3efe7;
-  --ink-soft: #c7bfb0;
+  --ink-soft: #cbd5e1;
   --ink-faint: #8f887d;
   --line: #303642;
   --line-strong: #3b4352;
@@ -246,6 +246,9 @@
 .sticky--blue   { background: var(--note-blue); }
 .sticky--flat   { transform: none; }
 .sticky--r2     { transform: rotate(1.4deg); }
+
+.profile-card { color: var(--ink); }
+
 .hand { font-family: var(--font-hand); }
 
 /* --- flashcard / index card --- */

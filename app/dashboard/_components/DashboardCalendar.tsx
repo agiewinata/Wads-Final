@@ -22,15 +22,34 @@ interface Event {
   category?: string | null;
 }
 
+interface WorkspaceTask {
+  id: string;
+  title: string;
+  dueDate: string | null;
+  completed?: boolean;
+}
+
 const DOW = ["S", "M", "T", "W", "T", "F", "S"];
+
+const DOT = {
+  task: "#22c55e",
+  overdue: "#ef4444",
+  event: "#3b82f6",
+  workspace: "#a855f7",
+};
 
 function sameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
+function startOfDay(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
 export default function DashboardCalendar() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
+  const [workspaceTasks, setWorkspaceTasks] = useState<WorkspaceTask[]>([]);
   const today = useMemo(() => new Date(), []);
   const [selected, setSelected] = useState<Date>(() => new Date());
   const [view, setView] = useState<{ y: number; m: number }>(() => {
@@ -41,13 +60,22 @@ export default function DashboardCalendar() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [tr, er] = await Promise.all([fetch("/api/tasks"), fetch("/api/events")]);
+        const [tr, er, wr] = await Promise.all([
+          fetch("/api/tasks"),
+          fetch("/api/events"),
+          fetch("/api/workspace-tasks"),
+        ]);
+
         const td = await tr.json();
         const ed = await er.json();
+        const wd = await wr.json();
+
         // eslint-disable-next-line react-hooks/set-state-in-effect
         if (tr.ok) setTasks(td);
         // eslint-disable-next-line react-hooks/set-state-in-effect
         if (er.ok) setEvents(ed);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        if (wr.ok) setWorkspaceTasks(wd);
       } catch (err) {
         console.error(err);
       }
@@ -55,36 +83,42 @@ export default function DashboardCalendar() {
     fetchData();
   }, []);
 
-  function dayHasTask(d: Date) {
-    return tasks.some((t) => t.dueDate && sameDay(new Date(t.dueDate), d));
-  }
-  function dayHasEvent(d: Date) {
-    return events.some((ev) => {
-      const s = new Date(ev.startDate);
-      const e = ev.dueDate ? new Date(ev.dueDate) : s;
-      const cur = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-      return cur >= new Date(s.getFullYear(), s.getMonth(), s.getDate()) &&
-             cur <= new Date(e.getFullYear(), e.getMonth(), e.getDate());
+  function activeTasksForDay(d: Date) {
+    return tasks.filter((t) => {
+      if (!t.dueDate || t.completed) return false;
+      return sameDay(new Date(t.dueDate), d);
     });
   }
+
+  function activeWorkspaceTasksForDay(d: Date) {
+    return workspaceTasks.filter((t) => {
+      if (!t.dueDate || t.completed) return false;
+      return sameDay(new Date(t.dueDate), d);
+    });
+  }
+
+  function activeEventsForDay(d: Date) {
+    const todayStart = startOfDay(new Date());
+
+    return events.filter((ev) => {
+      const s = new Date(ev.startDate);
+      const e = ev.dueDate ? new Date(ev.dueDate) : s;
+      const cur = startOfDay(d);
+
+      const start = startOfDay(s);
+      const end = startOfDay(e);
+
+      if (end < todayStart) return false;
+
+      return cur >= start && cur <= end;
+    });
+  }
+
   function getTaskDotColor(d: Date) {
-    const dayTasks = tasks.filter(
-      (t) => t.dueDate && sameDay(new Date(t.dueDate), d)
-    );
+    const todayStart = startOfDay(new Date());
+    const dStart = startOfDay(d);
 
-    if (dayTasks.some((t) => t.completed)) return "var(--good)";
-
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-
-    const dStart = new Date(d);
-    dStart.setHours(0, 0, 0, 0);
-
-    if (dayTasks.some((t) => !t.completed && dStart < todayStart)) {
-      return "var(--bad)";
-    }
-
-    return "var(--warn)";
+    return dStart < todayStart ? DOT.overdue : DOT.task;
   }
 
   const cells = useMemo(() => {
@@ -99,15 +133,10 @@ export default function DashboardCalendar() {
     return arr;
   }, [view]);
 
-  const selTasks = tasks.filter((t) => t.dueDate && sameDay(new Date(t.dueDate), selected));
-  const selEvents = events.filter((ev) => {
-    const s = new Date(ev.startDate);
-    const e = ev.dueDate ? new Date(ev.dueDate) : s;
-    const cur = new Date(selected.getFullYear(), selected.getMonth(), selected.getDate());
-    return cur >= new Date(s.getFullYear(), s.getMonth(), s.getDate()) &&
-           cur <= new Date(e.getFullYear(), e.getMonth(), e.getDate());
-  });
-  const total = selTasks.length + selEvents.length;
+  const selTasks = activeTasksForDay(selected);
+  const selWorkspaceTasks = activeWorkspaceTasksForDay(selected);
+  const selEvents = activeEventsForDay(selected);
+  const total = selTasks.length + selWorkspaceTasks.length + selEvents.length;
 
   const headerLabel = new Date(view.y, view.m, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
   const monthOnly = new Date(view.y, view.m, 1).toLocaleDateString("en-US", { month: "long" });
@@ -132,7 +161,6 @@ export default function DashboardCalendar() {
       </div>
 
       <div className="flex flex-1" style={{ minHeight: 0 }}>
-        {/* grid */}
         <div style={{ padding: "12px 14px", borderRight: "1px solid var(--line)", flexShrink: 0, width: 270 }}>
           <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
             <button onClick={() => shiftMonth(-1)} className="grid place-items-center" style={{ width: 26, height: 26, borderRadius: 7, border: "none", background: "transparent", color: "var(--ink-soft)", cursor: "pointer" }}><ChevronLeft size={16} /></button>
@@ -144,8 +172,10 @@ export default function DashboardCalendar() {
             {cells.map(({ date, muted }, i) => {
               const isSel = sameDay(date, selected);
               const isToday = sameDay(date, today);
-              const hasT = !muted && dayHasTask(date);
-              const hasE = !muted && dayHasEvent(date);
+              const hasT = !muted && activeTasksForDay(date).length > 0;
+              const hasW = !muted && activeWorkspaceTasksForDay(date).length > 0;
+              const hasE = !muted && activeEventsForDay(date).length > 0;
+
               return (
                 <button key={i} onClick={() => setSelected(date)} style={{
                   position: "relative", aspectRatio: "1", display: "grid", placeItems: "center",
@@ -157,28 +187,11 @@ export default function DashboardCalendar() {
                   boxShadow: !isSel && isToday ? "inset 0 0 0 1.5px var(--accent)" : "none",
                 }}>
                   {date.getDate()}
-                  {(hasT || hasE) && !isSel && (
-                    <span style={{ position: "absolute", bottom: 3, display: "flex", gap: 2 }}>
-                      {hasT && (
-                        <span
-                          style={{
-                            width: 4,
-                            height: 4,
-                            borderRadius: "50%",
-                            background: getTaskDotColor(date),
-                          }}
-                        />
-                      )}
-                      {hasE && (
-                        <span
-                          style={{
-                            width: 4,
-                            height: 4,
-                            borderRadius: "50%",
-                            background: "var(--accent)",
-                          }}
-                        />
-                      )}
+                  {(hasT || hasW || hasE) && !isSel && (
+                    <span style={{ position: "absolute", bottom: 3, display: "flex", gap: 3 }}>
+                      {hasT && <span style={{ width: 6, height: 6, borderRadius: "50%", background: getTaskDotColor(date) }} />}
+                      {hasW && <span style={{ width: 6, height: 6, borderRadius: "50%", background: DOT.workspace }} />}
+                      {hasE && <span style={{ width: 6, height: 6, borderRadius: "50%", background: DOT.event }} />}
                     </span>
                   )}
                 </button>
@@ -187,7 +200,6 @@ export default function DashboardCalendar() {
           </div>
         </div>
 
-        {/* right panel — no SELECTED label */}
         <div style={{ padding: "14px 16px", flex: 1, overflowY: "auto", minWidth: 0 }}>
           <div style={{ fontFamily: "var(--font-heading)", fontSize: 15, fontWeight: 600, color: "var(--ink)", marginBottom: 10 }}>
             {selected.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
@@ -197,24 +209,35 @@ export default function DashboardCalendar() {
           ) : (
             <div className="flex flex-col gap-1.5">
               {selTasks.slice(0, 4).map((t) => {
-                const overdue = t.dueDate && !t.completed && new Date(t.dueDate) < new Date();
-                const stripe = t.completed ? "var(--good)" : overdue ? "var(--bad)" : "var(--ink-soft)";
+                const overdue = t.dueDate && new Date(t.dueDate) < new Date();
+                const stripe = overdue ? DOT.overdue : DOT.task;
                 return (
-                  <div key={t.id} className="flex" style={{ border: "1px solid var(--line)", borderRadius: 8, overflow: "hidden" }}>
+                  <div key={t.id} className="flex" style={{ border: `1px solid ${overdue ? "#fee2e2" : "#dcfce7"}`, background: overdue ? "#fee2e2" : "#dcfce7", borderRadius: 8, overflow: "hidden" }}>
                     <div style={{ width: 3, background: stripe, flexShrink: 0 }} />
                     <div style={{ padding: "6px 10px", minWidth: 0 }}>
                       <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.title}</div>
-                      <div style={{ fontSize: 10, fontWeight: 600, color: stripe, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 1 }}>{t.completed ? "Done" : overdue ? "Overdue" : "Ongoing"}</div>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: stripe, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 1 }}>{overdue ? "Overdue" : "Ongoing"}</div>
                     </div>
                   </div>
                 );
               })}
+
+              {selWorkspaceTasks.slice(0, 4).map((t) => (
+                <div key={t.id} className="flex" style={{ border: "1px solid #f3e8ff", background: "#f3e8ff", borderRadius: 8, overflow: "hidden" }}>
+                  <div style={{ width: 3, background: DOT.workspace, flexShrink: 0 }} />
+                  <div style={{ padding: "6px 10px", minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.title}</div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: DOT.workspace, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 1 }}>Workspace</div>
+                  </div>
+                </div>
+              ))}
+
               {selEvents.slice(0, 3).map((ev) => (
-                <div key={ev.id} className="flex" style={{ border: "1px solid var(--accent-soft)", background: "var(--accent-soft)", borderRadius: 8, overflow: "hidden" }}>
-                  <div style={{ width: 3, background: "var(--accent)", flexShrink: 0 }} />
+                <div key={ev.id} className="flex" style={{ border: "1px solid #dbeafe", background: "#dbeafe", borderRadius: 8, overflow: "hidden" }}>
+                  <div style={{ width: 3, background: DOT.event, flexShrink: 0 }} />
                   <div style={{ padding: "6px 10px", minWidth: 0 }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.title}</div>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: "var(--accent-text)", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 1 }}>Event</div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: DOT.event, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 1 }}>Event</div>
                   </div>
                 </div>
               ))}

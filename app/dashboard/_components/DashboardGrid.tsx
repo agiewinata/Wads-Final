@@ -45,15 +45,23 @@ export default function DashboardGrid({ user }: Props) {
   useEffect(() => {
     async function loadCount() {
       try {
-        const res = await fetch("/api/tasks");
-        if (!res.ok) return;
+        const [taskRes, workspaceRes] = await Promise.all([
+          fetch("/api/tasks"),
+          fetch("/api/workspace-tasks"),
+        ]);
+        if (!taskRes.ok) return;
 
         const tasks: { dueDate: string | null; completed: boolean }[] =
-          await res.json();
+          await taskRes.json();
+
+        const workspaceTasks: { dueDate: string | null; completed?: boolean }[] =
+          workspaceRes.ok ? await workspaceRes.json() : [];
+
+        const allTasks = [...tasks, ...workspaceTasks];
 
         const now = new Date();
 
-        const n = tasks.filter((t) => {
+        const n = allTasks.filter((t) => {
           if (!t.dueDate || t.completed) return false;
           const d = new Date(t.dueDate);
 
