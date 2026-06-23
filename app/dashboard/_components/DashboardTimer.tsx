@@ -2,15 +2,60 @@
 
 import { useState, useEffect } from "react";
 import { useTimer } from "../_components/TimerProvider";
+import { Clock, Settings, RotateCcw, Play, Pause, ArrowLeft, Bell } from "lucide-react";
 
-const IRREGULAR = "6px 8px 5px 7px / 7px 5px 8px 6px";
-const CARD_IRR  = "4px 6px 4px 6px / 6px 4px 6px 4px";
+function fmt(secondsLeft: number) {
+  const h = Math.floor(secondsLeft / 3600);
+  const m = Math.floor((secondsLeft % 3600) / 60);
+  const s = secondsLeft % 60;
+  const mm = String(m).padStart(2, "0");
+  const ss = String(s).padStart(2, "0");
+  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
+/* Simple twin-bell alarm clock. Minute hand sweeps one full turn over the
+   whole session (12 -> clockwise -> 12); hour hand stays at 12. */
+function AlarmClock({ progress }: { progress: number }) {
+  const angle = (1 - progress) * 360;          // 0 at start (12 o'clock), grows clockwise
+  const th = (angle * Math.PI) / 180;
+  const hx = 100 + Math.sin(th) * 58;
+  const hy = 100 - Math.cos(th) * 58;
+
+  const ticks = [0, 3, 6, 9].map((i) => {
+    const a = (i / 12) * 2 * Math.PI;
+    const x1 = 100 + Math.sin(a) * 60, y1 = 100 - Math.cos(a) * 60;
+    const x2 = 100 + Math.sin(a) * 51, y2 = 100 - Math.cos(a) * 51;
+    return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="var(--ink-faint)" strokeWidth={3} strokeLinecap="round" />;
+  });
+
+  return (
+    <svg width="166" height="184" viewBox="0 0 200 220" style={{ flexShrink: 0 }}>
+      {/* feet */}
+      <rect x="44" y="166" width="16" height="30" rx="6" transform="rotate(24 52 181)" fill="var(--ink)" />
+      <rect x="140" y="166" width="16" height="30" rx="6" transform="rotate(-24 148 181)" fill="var(--ink)" />
+      {/* bells + hammer */}
+      <ellipse cx="50" cy="40" rx="26" ry="22" fill="var(--ink)" />
+      <ellipse cx="150" cy="40" rx="26" ry="22" fill="var(--ink)" />
+      <rect x="92" y="9" width="16" height="18" rx="7" fill="var(--ink)" />
+      <line x1="64" y1="37" x2="136" y2="37" stroke="var(--ink)" strokeWidth="5" strokeLinecap="round" />
+      {/* body */}
+      <circle cx="100" cy="100" r="72" fill="var(--ink)" />
+      <circle cx="100" cy="100" r="67" fill="var(--paper)" stroke="var(--line-strong)" strokeWidth="2" />
+      {ticks}
+      {/* hour hand fixed at 12 */}
+      <line x1="100" y1="100" x2="100" y2="66" stroke="var(--ink)" strokeWidth="6" strokeLinecap="round" />
+      {/* minute hand (sweeps with progress) */}
+      <line x1="100" y1="100" x2={hx} y2={hy} stroke="var(--accent)" strokeWidth="4" strokeLinecap="round" />
+      <circle cx="100" cy="100" r="6" fill="var(--accent)" />
+      <circle cx="100" cy="100" r="2.5" fill="var(--paper)" />
+    </svg>
+  );
+}
 
 export default function DashboardTimer() {
   const [screen, setScreen] = useState<"timer" | "settings">("timer");
   const [showNotifPopup, setShowNotifPopup] = useState(false);
 
-  /* Show popup once on mount unless notifications are already granted */
   useEffect(() => {
     if (typeof Notification === "undefined") return;
     if (Notification.permission === "granted") return;
@@ -23,552 +68,144 @@ export default function DashboardTimer() {
   }, []);
 
   const {
-    focusMinutes,
-    setFocusMinutes,
-    shortBreakMinutes,
-    setShortBreakMinutes,
-    longBreakMinutes,
-    setLongBreakMinutes,
-    longBreakInterval,
-    setLongBreakInterval,
-    autoStartBreaks,
-    setAutoStartBreaks,
-    isRunning,
-    setIsRunning,
-    displayMinutes,
-    displaySeconds,
-    innerModeLabel,
-    mode,
-    setModeAndReset,
-    requestNotificationPermission,
-    resetTimer,
-    saveSettings,
+    focusMinutes, setFocusMinutes,
+    shortBreakMinutes, setShortBreakMinutes,
+    longBreakMinutes, setLongBreakMinutes,
+    longBreakInterval, setLongBreakInterval,
+    autoStartBreaks, setAutoStartBreaks,
+    isRunning, setIsRunning,
+    secondsLeft, progress, innerModeLabel, mode, setModeAndReset,
+    requestNotificationPermission, resetTimer, saveSettings,
   } = useTimer();
 
   return (
-    <div
-      className="bg-white h-full w-full flex flex-col overflow-hidden"
-      style={{
-        border: "3px solid #111",
-        borderRadius: IRREGULAR,
-        boxShadow: "6px 8px 0 rgba(0,0,0,0.12)",
-        position: "relative",
-      }}
-    >
-      {/* Notification permission popup */}
+    <div className="paper h-full w-full flex flex-col overflow-hidden" style={{ position: "relative", padding: "18px 20px" }}>
       {showNotifPopup && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: "rgba(0,0,0,0.45)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 10,
-            borderRadius: IRREGULAR,
-          }}
-        >
-          <div
-            style={{
-              background: "white",
-              border: "3px solid #111",
-              borderRadius: IRREGULAR,
-              boxShadow: "5px 6px 0 rgba(0,0,0,0.18)",
-              padding: "24px 20px 20px",
-              width: "calc(100% - 32px)",
-              maxWidth: 280,
-            }}
-          >
-            <div style={{ fontSize: 28, textAlign: "center", marginBottom: 10 }}>🔔</div>
-            <h3
-              style={{
-                fontSize: 16,
-                fontWeight: 800,
-                fontStyle: "italic",
-                letterSpacing: "-0.02em",
-                color: "#111",
-                textAlign: "center",
-                marginBottom: 6,
-              }}
-            >
-              Enable notifications?
-            </h3>
-            <p
-              style={{
-                fontSize: 12,
-                color: "#71717a",
-                textAlign: "center",
-                lineHeight: 1.5,
-                marginBottom: 18,
-              }}
-            >
-              Get alerted when your focus session or break ends — even if this tab is in the background.
-            </p>
+        <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, borderRadius: 14, padding: 18 }}>
+          <div className="paper" style={{ padding: "20px 18px", textAlign: "center", maxWidth: 260 }}>
+            <Bell size={26} style={{ color: "var(--accent)" }} />
+            <h3 style={{ fontFamily: "var(--font-heading)", fontSize: 15, fontWeight: 600, color: "var(--ink)", margin: "8px 0 4px" }}>Enable notifications?</h3>
+            <p style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.5, marginBottom: 14 }}>Get alerted when your session or break ends.</p>
             <div style={{ display: "flex", gap: 8 }}>
-              <button
-                onClick={() => {
-                  setShowNotifPopup(false);
-                  setIsRunning(true);
-                }}
-                style={{
-                  flex: 1,
-                  padding: "8px",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  background: "white",
-                  color: "#71717a",
-                  border: "2px solid #e4e4e7",
-                  borderRadius: CARD_IRR,
-                  cursor: "pointer",
-                }}
-              >
-                No thanks
-              </button>
-              <button
+              <button className="btn-paper" style={{ flex: 1, justifyContent: "center", padding: 8, fontSize: 12 }}
+                onClick={() => { setShowNotifPopup(false); setIsRunning(true); }}>No thanks</button>
+              <button className="btn-ink" style={{ flex: 1, justifyContent: "center", padding: 8, fontSize: 12 }}
                 onClick={async () => {
                   setShowNotifPopup(false);
                   if (typeof Notification !== "undefined" && Notification.permission === "denied") {
-                    alert("Notifications are blocked in your browser. Please click the lock icon in the address bar and allow notifications for this site.");
-                  } else {
-                    await requestNotificationPermission();
-                  }
+                    alert("Notifications are blocked. Allow them from the lock icon in the address bar.");
+                  } else { await requestNotificationPermission(); }
                   setIsRunning(true);
-                }}
-                style={{
-                  flex: 1,
-                  padding: "8px",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  background: "#111",
-                  color: "white",
-                  border: "2px solid #111",
-                  borderRadius: CARD_IRR,
-                  cursor: "pointer",
-                }}
-              >
-                Yes, enable
-              </button>
+                }}>Enable</button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto p-5">
-        {screen === "timer" ? (
-          <>
-            {/* Header */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 16,
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.1em",
-                    color: "#a1a1aa",
-                    marginBottom: 2,
-                  }}
-                >
-                  Pomodoro
-                </div>
-                <h2
-                  style={{
-                    fontSize: 20,
-                    fontWeight: 800,
-                    fontStyle: "italic",
-                    letterSpacing: "-0.03em",
-                    color: "#111",
-                    lineHeight: 1,
-                  }}
-                >
-                  Study Timer
-                </h2>
-              </div>
-              <button
-                onClick={() => setScreen("settings")}
-                style={{
-                  background: "white",
-                  border: "2px solid #e4e4e7",
-                  borderRadius: CARD_IRR,
-                  padding: "6px 10px",
-                  fontSize: 14,
-                  cursor: "pointer",
-                  color: "#71717a",
-                  transition: "border-color 0.12s",
-                }}
-              >
-                ⚙
-              </button>
+      {/* header */}
+      <div className="flex items-center gap-2.5" style={{ marginBottom: 14, flexShrink: 0 }}>
+        <div className="grid place-items-center" style={{ width: 30, height: 30, borderRadius: 9, background: "var(--accent-soft)", color: "var(--accent-text)" }}>
+          <Clock size={17} />
+        </div>
+        <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 17, fontWeight: 600, color: "var(--ink)", lineHeight: 1 }}>Focus timer</h2>
+        <span className="pill pill-assignment" style={{ marginLeft: "auto" }}>Pomodoro</span>
+      </div>
+
+      {screen === "timer" ? (
+        <div className="flex-1 flex items-center" style={{ gap: 22, minHeight: 0 }}>
+          <AlarmClock progress={progress} />
+
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--ink-faint)", marginBottom: 4 }}>{innerModeLabel}</div>
+            <div style={{ fontFamily: "var(--font-heading)", fontSize: 44, fontWeight: 600, color: "var(--ink)", lineHeight: 1, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>
+              {fmt(secondsLeft)}
             </div>
 
-            {/* Mode tabs */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr 1fr",
-                gap: 6,
-                marginBottom: 14,
-              }}
-            >
-              {(
-                [
-                  { key: "focus",      label: "Focus" },
-                  { key: "shortBreak", label: "Short" },
-                  { key: "longBreak",  label: "Long" },
-                ] as const
-              ).map(({ key, label }) => (
-                <button
-                  key={key}
-                  onClick={() => setModeAndReset(key)}
-                  style={{
-                    padding: "7px 0",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    letterSpacing: "0.02em",
-                    border: "2px solid #111",
-                    borderRadius: CARD_IRR,
-                    background: mode === key ? "#111" : "white",
-                    color: mode === key ? "white" : "#111",
-                    cursor: "pointer",
-                    transition: "all 0.12s",
-                  }}
-                >
+            {/* quick select */}
+            <div style={{ display: "flex", gap: 6, marginTop: 16 }}>
+              {([{ key: "focus", label: "Focus" }, { key: "shortBreak", label: "Short" }, { key: "longBreak", label: "Long" }] as const).map(({ key, label }) => (
+                <button key={key} onClick={() => setModeAndReset(key)}
+                  style={{ flex: 1, padding: "7px 0", fontSize: 12, fontWeight: 600, borderRadius: 999, cursor: "pointer",
+                    border: "1px solid " + (mode === key ? "var(--accent)" : "var(--line-strong)"),
+                    background: mode === key ? "var(--accent)" : "var(--paper)",
+                    color: mode === key ? "#fff" : "var(--ink-soft)" }}>
                   {label}
                 </button>
               ))}
             </div>
 
-            {/* Time display */}
-            <div
-              style={{
-                background: "#fafafa",
-                border: "2px solid #e4e4e7",
-                borderRadius: CARD_IRR,
-                padding: "20px 16px",
-                textAlign: "center",
-                marginBottom: 20,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                  color: "#a1a1aa",
-                  marginBottom: 6,
-                }}
-              >
-                {innerModeLabel}
-              </div>
-              <div
-                style={{
-                  fontSize: 52,
-                  fontWeight: 800,
-                  letterSpacing: "-0.04em",
-                  color: "#111",
-                  lineHeight: 1,
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              >
-                {String(displayMinutes).padStart(2, "0")}
-                <span style={{ color: "#d4d4d8", margin: "0 2px" }}>:</span>
-                {String(displaySeconds).padStart(2, "0")}
-              </div>
-            </div>
-
-            {/* Controls */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 14,
-              }}
-            >
-              {/* Reset */}
-              <button
-                onClick={resetTimer}
-                style={{
-                  width: 42,
-                  height: 42,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: "50%",
-                  border: "2px solid #e4e4e7",
-                  background: "white",
-                  fontSize: 18,
-                  cursor: "pointer",
-                  color: "#71717a",
-                  transition: "border-color 0.12s",
-                }}
-              >
-                ↻
+            {/* controls */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14 }}>
+              <button onClick={() => setScreen("settings")} className="grid place-items-center" title="Settings"
+                style={{ width: 40, height: 40, borderRadius: "50%", border: "1px solid var(--line-strong)", background: "var(--paper)", color: "var(--ink-soft)", cursor: "pointer" }}>
+                <Settings size={16} />
               </button>
-
-              {/* Play/Pause */}
-              <button
-                onClick={() => {
-                  if (
-                    typeof Notification !== "undefined" &&
-                    Notification.permission === "default"
-                  ) {
-                    setShowNotifPopup(true);
-                  } else {
-                    setIsRunning((prev: boolean) => !prev);
-                  }
-                }}
-                style={{
-                  width: 58,
-                  height: 58,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: "50%",
-                  border: "3px solid #111",
-                  background: "#111",
-                  color: "white",
-                  fontSize: 20,
-                  cursor: "pointer",
-                  boxShadow: "3px 4px 0 rgba(0,0,0,0.18)",
-                  transition: "transform 0.1s",
-                }}
-              >
-                {isRunning ? "⏸" : "▶"}
+              <button onClick={() => {
+                  if (typeof Notification !== "undefined" && Notification.permission === "default") setShowNotifPopup(true);
+                  else setIsRunning((p: boolean) => !p);
+                }} className="grid place-items-center" title={isRunning ? "Pause" : "Start"}
+                style={{ width: 52, height: 52, borderRadius: "50%", border: "none", background: "var(--accent)", color: "#fff", cursor: "pointer", boxShadow: "var(--shadow)" }}>
+                {isRunning ? <Pause size={22} /> : <Play size={22} style={{ marginLeft: 2 }} />}
               </button>
-
-              {/* Spacer mirror of reset for centering */}
-              <div style={{ width: 42 }} />
-            </div>
-          </>
-        ) : (
-          <>
-            {/* Settings header */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 16,
-              }}
-            >
-              <h2
-                style={{
-                  fontSize: 20,
-                  fontWeight: 800,
-                  fontStyle: "italic",
-                  letterSpacing: "-0.03em",
-                  color: "#111",
-                }}
-              >
-                Settings
-              </h2>
-              <button
-                onClick={() => setScreen("timer")}
-                style={{
-                  background: "white",
-                  border: "2px solid #e4e4e7",
-                  borderRadius: CARD_IRR,
-                  padding: "6px 12px",
-                  fontSize: 13,
-                  cursor: "pointer",
-                  color: "#71717a",
-                }}
-              >
-                ←
+              <button onClick={resetTimer} className="grid place-items-center" title="Reset"
+                style={{ width: 40, height: 40, borderRadius: "50%", border: "1px solid var(--line-strong)", background: "var(--paper)", color: "var(--ink-soft)", cursor: "pointer" }}>
+                <RotateCcw size={16} />
               </button>
             </div>
-
-            <TimerInput label="Focus time"          value={focusMinutes}      onChange={setFocusMinutes} />
-            <TimerInput label="Short break"         value={shortBreakMinutes} onChange={setShortBreakMinutes} />
-            <TimerInput label="Long break"          value={longBreakMinutes}  onChange={setLongBreakMinutes} />
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 flex flex-col" style={{ minHeight: 0 }}>
+          <div className="flex items-center justify-between" style={{ marginBottom: 10, flexShrink: 0 }}>
+            <h3 style={{ fontFamily: "var(--font-heading)", fontSize: 16, fontWeight: 600, color: "var(--ink)" }}>Timer settings</h3>
+            <button onClick={() => setScreen("timer")} className="grid place-items-center"
+              style={{ width: 30, height: 30, borderRadius: 9, border: "1px solid var(--line-strong)", background: "var(--paper)", color: "var(--ink-soft)", cursor: "pointer" }}>
+              <ArrowLeft size={15} />
+            </button>
+          </div>
+          <div style={{ overflowY: "auto", flex: 1, paddingRight: 4 }}>
+            <TimerInput label="Focus time" value={focusMinutes} onChange={setFocusMinutes} />
+            <TimerInput label="Short break" value={shortBreakMinutes} onChange={setShortBreakMinutes} />
+            <TimerInput label="Long break" value={longBreakMinutes} onChange={setLongBreakMinutes} />
             <TimerInput label="Long break interval" value={longBreakInterval} onChange={setLongBreakInterval} />
-
-            {/* Auto-start toggle */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: 12,
-                marginBottom: 16,
-                padding: "10px 0",
-                borderTop: "1px solid #f4f4f5",
-              }}
-            >
+            <div className="flex items-center justify-between" style={{ gap: 8, padding: "10px 0", borderTop: "1px solid var(--line)", marginTop: 4 }}>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "#111" }}>
-                  Auto-start breaks
-                </div>
-                <div style={{ fontSize: 11, color: "#a1a1aa" }}>
-                  Automatically starts break timers
-                </div>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--ink)" }}>Auto-start breaks</div>
+                <div style={{ fontSize: 11, color: "var(--ink-soft)" }}>Start break timers automatically.</div>
               </div>
-              <button
-                type="button"
-                onClick={() => setAutoStartBreaks((prev: boolean) => !prev)}
-                style={{
-                  position: "relative",
-                  width: 44,
-                  height: 24,
-                  borderRadius: 999,
-                  border: "2px solid #111",
-                  background: autoStartBreaks ? "#111" : "white",
-                  cursor: "pointer",
-                  flexShrink: 0,
-                  transition: "background 0.15s",
-                }}
-              >
-                <span
-                  style={{
-                    position: "absolute",
-                    top: 2,
-                    left: autoStartBreaks ? 20 : 2,
-                    width: 16,
-                    height: 16,
-                    borderRadius: "50%",
-                    background: autoStartBreaks ? "white" : "#d4d4d8",
-                    transition: "left 0.15s",
-                  }}
-                />
+              <button type="button" onClick={() => setAutoStartBreaks((p: boolean) => !p)}
+                style={{ position: "relative", width: 44, height: 24, borderRadius: 999, border: "none", cursor: "pointer", flexShrink: 0,
+                  background: autoStartBreaks ? "var(--accent)" : "var(--line-strong)", transition: "background .15s" }}>
+                <span style={{ position: "absolute", top: 2, left: autoStartBreaks ? 22 : 2, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
               </button>
             </div>
-
-            {/* Save / Cancel */}
-            <div style={{ display: "flex", gap: 8 }}>
-              <button
-                onClick={() => setScreen("timer")}
-                style={{
-                  flex: 1,
-                  padding: "9px",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  border: "2px solid #e4e4e7",
-                  borderRadius: CARD_IRR,
-                  background: "white",
-                  color: "#3f3f46",
-                  cursor: "pointer",
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => { saveSettings(); setScreen("timer"); }}
-                style={{
-                  flex: 1,
-                  padding: "9px",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  border: "2px solid #111",
-                  borderRadius: CARD_IRR,
-                  background: "#111",
-                  color: "white",
-                  cursor: "pointer",
-                }}
-              >
-                Save
-              </button>
-            </div>
-          </>
-        )}
-      </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 10, flexShrink: 0 }}>
+            <button onClick={() => setScreen("timer")} className="btn-paper" style={{ flex: 1, justifyContent: "center", padding: 9, fontSize: 13 }}>Cancel</button>
+            <button onClick={() => { saveSettings(); setScreen("timer"); }} className="btn-ink" style={{ flex: 1, justifyContent: "center", padding: 9, fontSize: 13 }}>Save</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function TimerInput({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
-}) {
+function TimerInput({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
+  const isInterval = label === "Long break interval";
+  const hint = !isInterval && value >= 60 ? `${Math.floor(value / 60)}h ${value % 60 ? `${value % 60}m` : ""}`.trim() : "";
   return (
     <div style={{ marginBottom: 12 }}>
-      <div
-        style={{
-          fontSize: 10,
-          fontWeight: 700,
-          textTransform: "uppercase",
-          letterSpacing: "0.08em",
-          color: "#a1a1aa",
-          marginBottom: 5,
-        }}
-      >
-        {label}{" "}
-        <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>
-          ({label === "Long break interval" ? "sessions" : "min"})
-        </span>
+      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--ink)", marginBottom: 5 }}>{label}</div>
+      <div style={{ display: "flex", border: "1px solid var(--line-strong)", borderRadius: 9, overflow: "hidden" }}>
+        <button onClick={() => onChange(Math.max(1, value - (isInterval ? 1 : 5)))}
+          style={{ width: 38, borderRight: "1px solid var(--line)", background: "var(--paper-2)", fontSize: 16, fontWeight: 600, cursor: "pointer", color: "var(--ink)" }}>−</button>
+        <input type="number" min="1" value={value}
+          onChange={(e) => { const v = Number(e.target.value); if (v > 0) onChange(v); }}
+          style={{ flex: 1, textAlign: "center", border: "none", outline: "none", fontSize: 14, fontWeight: 600, color: "var(--ink)", background: "var(--paper)" }} />
+        <button onClick={() => onChange(value + (isInterval ? 1 : 5))}
+          style={{ width: 38, borderLeft: "1px solid var(--line)", background: "var(--paper-2)", fontSize: 16, fontWeight: 600, cursor: "pointer", color: "var(--ink)" }}>+</button>
       </div>
-      <div
-        style={{
-          display: "flex",
-          border: "2px solid #111",
-          borderRadius: "4px 6px 4px 6px",
-          overflow: "hidden",
-        }}
-      >
-        <button
-          onClick={() => onChange(Math.max(1, value - 1))}
-          style={{
-            width: 36,
-            borderRight: "2px solid #111",
-            background: "#fafafa",
-            fontSize: 16,
-            fontWeight: 700,
-            cursor: "pointer",
-            color: "#111",
-            flexShrink: 0,
-          }}
-        >
-          −
-        </button>
-        <input
-          type="number"
-          min="1"
-          value={value}
-          onChange={(e) => {
-            const v = Number(e.target.value);
-            if (v > 0) onChange(v);
-          }}
-          style={{
-            flex: 1,
-            textAlign: "center",
-            border: "none",
-            outline: "none",
-            fontSize: 14,
-            fontWeight: 700,
-            color: "#111",
-            background: "white",
-          }}
-        />
-        <button
-          onClick={() => onChange(value + 1)}
-          style={{
-            width: 36,
-            borderLeft: "2px solid #111",
-            background: "#fafafa",
-            fontSize: 16,
-            fontWeight: 700,
-            cursor: "pointer",
-            color: "#111",
-            flexShrink: 0,
-          }}
-        >
-          +
-        </button>
-      </div>
+      <div style={{ fontSize: 11, color: "var(--ink-faint)", marginTop: 4 }}>{isInterval ? "sessions" : hint ? `minutes · ${hint}` : "minutes"}</div>
     </div>
   );
 }

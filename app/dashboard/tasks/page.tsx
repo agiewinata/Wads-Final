@@ -183,6 +183,15 @@ export default function TasksPage() {
     setModalOpen(true);
   }
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("new") === "1") {
+      doOpenAdd();
+      window.history.replaceState(null, "", "/dashboard/tasks");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function openAdd() {
     setBurnoutLoading(true);
     try {
