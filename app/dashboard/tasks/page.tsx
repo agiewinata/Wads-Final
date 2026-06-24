@@ -42,13 +42,26 @@ function formatDate(iso: string | null) {
   return d.toLocaleDateString("en-US", { day: "numeric", month: "short" });
 }
 
+function isToday(iso: string | null) {
+  if (!iso) return false;
+  const d = new Date(iso);
+  const today = new Date();
+
+  return (
+    d.getFullYear() === today.getFullYear() &&
+    d.getMonth() === today.getMonth() &&
+    d.getDate() === today.getDate()
+  );
+}
+
+
 const LINE_H = 48;
 const MIN_ROWS = 12;
 
 const BUILT_IN = [
-  { value: "ASSIGNMENT", label: "Assignment", bg: "#d9ddff", color: "#4653b8", activeBg: "#4653b8" },
-  { value: "PROJECT", label: "Project", bg: "#cfe8d0", color: "#3f7a4f", activeBg: "#3f7a4f" },
-  { value: "EXAM", label: "Exam", bg: "#f4d2d2", color: "#b5453d", activeBg: "#b5453d" },
+  { value: "ASSIGNMENT", label: "Assignment" },
+  { value: "PROJECT", label: "Project" },
+  { value: "EXAM", label: "Exam" },
 ];
 
 const CUSTOM_CATEGORY_COLORS = [
@@ -82,7 +95,15 @@ export default function TasksPage() {
   const [addingCat, setAddingCat] = useState(false);
   const [newCatName, setNewCatName] = useState("");
   const [catError, setCatError] = useState("");
-  const [hiddenCats, setHiddenCats] = useState<Set<string>>(new Set());
+  const [hiddenCats, setHiddenCats] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+
+    try {
+      return new Set(JSON.parse(localStorage.getItem("hiddenDefaultCategories") ?? "[]"));
+    } catch {
+      return new Set();
+    }
+  });
   const [activeStatus, setActiveStatus] = useState<TaskStatus>("CURRENT");
   const [activeCategory, setActiveCategory] = useState("ALL");
   const [sortField, setSortField] = useState<SortField>("createdAt");
@@ -122,6 +143,10 @@ export default function TasksPage() {
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
+
+  useEffect(() => {
+  localStorage.setItem("hiddenDefaultCategories", JSON.stringify([...hiddenCats]));
+}, [hiddenCats]);
 
   const visible = tasks
     .filter((t) => getStatus(t) === activeStatus)
@@ -166,20 +191,29 @@ export default function TasksPage() {
   const doneCount = tasks.filter((t) => t.completed).length;
   const rows = Math.max(visible.length, MIN_ROWS);
 
+  const availableCategories = [
+    ...BUILT_IN.filter((c) => !hiddenCats.has(c.value)),
+    ...userCategories
+      .filter((c) => !hiddenCats.has(c.name.toUpperCase()))
+      .filter((c) => !hiddenCats.has(c.name))
+      .map((c) => ({ value: c.name, label: c.name, id: c.id })),
+  ];
+
+  function getCategoryColor(value: string) {
+    const index = availableCategories.findIndex((c) => c.value === value);
+    if (index === -1) return null;
+    return CUSTOM_CATEGORY_COLORS[index % CUSTOM_CATEGORY_COLORS.length];
+  }
+
   const categoryTabs = [
     { value: "ALL", label: "All", bg: "#f4f4f4", color: "var(--ink-soft)", activeBg: "var(--accent)" },
-    ...BUILT_IN.filter((c) => !hiddenCats.has(c.value)),
-    ...userCategories.map((c, i) => {
-      const color = CUSTOM_CATEGORY_COLORS[i % CUSTOM_CATEGORY_COLORS.length];
-
-      return {
-        value: c.name,
-        label: c.name,
-        id: c.id,
-        ...color,
-      };
-    }),
+    ...availableCategories.map((c, i) => ({
+      ...c,
+      ...CUSTOM_CATEGORY_COLORS[i % CUSTOM_CATEGORY_COLORS.length],
+    })),
   ];
+
+  const denseTabs = categoryTabs.length > rows;
 
   const iconBtn = (active = false): React.CSSProperties => ({
     width: 36,
@@ -294,6 +328,7 @@ export default function TasksPage() {
 
       if (!res.ok) throw new Error();
       setModalOpen(false);
+      await fetchCategories();
       await fetchTasks();
     } catch {
       setFormError("Something went wrong. Try again.");
@@ -348,6 +383,24 @@ export default function TasksPage() {
     }
   }
 
+  async function deleteBuiltInCategory(value: string) {
+    await Promise.all(
+      tasks
+        .filter((t) => t.category === value)
+        .map((t) =>
+          csrfFetch(`/api/tasks/${t.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ category: null }),
+          })
+        )
+    );
+
+    if (activeCategory === value) setActiveCategory("ALL");
+    setHiddenCats((prev) => new Set([...prev, value]));
+    await fetchTasks();
+  }
+
   async function deleteCategory(id: string, name: string) {
     await csrfFetch(`/api/categories/${id}`, { method: "DELETE" });
     if (activeCategory === name) setActiveCategory("ALL");
@@ -366,7 +419,14 @@ export default function TasksPage() {
 
   return (
     <div className="w-full flex flex-col gap-5">
-      <div className="flex items-end justify-between flex-wrap" style={{ gap: 16 }}>
+      <div
+        className="flex items-end justify-between flex-wrap"
+        style={{
+          gap: 16,
+          marginBottom: 8,
+          paddingRight: isMobile ? 0 : 116,
+        }}
+      >
         <div>
           <h1
             className="swipe"
@@ -472,10 +532,8 @@ export default function TasksPage() {
           <div
             className="ruled"
             style={{
-              maxHeight: "calc(100vh - 240px)",
-              minHeight: MIN_ROWS * LINE_H,
-              overflowY: "auto",
-              overflowX: "hidden",
+              minHeight: rows * LINE_H,
+              overflow: "hidden",
               position: "relative",
             }}
           >
@@ -567,17 +625,39 @@ export default function TasksPage() {
                               </span>
                             )}
 
-                            <span className="ml-auto shrink-0 flex items-center gap-2.5">
+                            <span className="ml-auto shrink-0 flex items-center gap-3">
+                              {task.category && getCategoryColor(task.category) && (
+                                <span
+                                  style={{
+                                    background: getCategoryColor(task.category)?.bg,
+                                    color: getCategoryColor(task.category)?.color,
+                                    borderRadius: 999,
+                                    padding: "3px 10px",
+                                    fontSize: 11,
+                                    fontWeight: 800,
+                                    letterSpacing: "0.08em",
+                                    textTransform: "uppercase",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {getCategoryLabel(task.category)}
+                                </span>
+                              )}
+
                               {task.dueDate && (
                                 <span
                                   style={{
                                     fontSize: 12,
-                                    fontWeight: 500,
+                                    fontWeight: 600,
                                     fontFamily: "var(--font-mono)",
-                                    color: getStatus(task) === "OVERDUE" ? "var(--bad)" : "var(--ink-soft)",
+                                    color: isToday(task.dueDate)
+                                      ? "var(--bad)"
+                                      : getStatus(task) === "OVERDUE"
+                                        ? "var(--bad)"
+                                        : "var(--ink-soft)",
                                   }}
                                 >
-                                  {formatDate(task.dueDate)}
+                                  {isToday(task.dueDate) ? "Due today" : formatDate(task.dueDate)}
                                 </span>
                               )}
                             </span>
@@ -598,7 +678,7 @@ export default function TasksPage() {
               ? {
                   display: "flex",
                   flexDirection: "row",
-                  gap: 6,
+                  gap: denseTabs ? 3 : 6,
                   overflowX: "auto",
                   paddingTop: 4,
                   paddingBottom: 4,
@@ -607,7 +687,7 @@ export default function TasksPage() {
               : {
                   display: "flex",
                   flexDirection: "column",
-                  gap: 6,
+                  gap: denseTabs ? 3 : 6,
                   marginLeft: 0,
                   paddingTop: 58,
                   position: "relative",
@@ -708,7 +788,7 @@ export default function TasksPage() {
             .filter((cat) => !hiddenCats.has(cat.value))
             .map((cat) => {
               const active = activeCategory === cat.value;
-              const isCustom = !["ALL", ...BUILT_IN.map((b) => b.value)].includes(cat.value);
+              const isCustom = !["ALL", ...BUILT_IN.map((b) => b.value)].includes(cat.value);        
 
               return (
                 <div key={cat.value} className="group" style={{ position: "relative", display: "flex", alignItems: "center", flexShrink: 0 }}>
@@ -724,12 +804,16 @@ export default function TasksPage() {
                       border: "1px solid var(--line-strong)",
                       borderLeft: "1px solid var(--line-strong)",
                       borderRadius: isMobile ? "8px" : "0 8px 8px 0",
-                      padding: "8px 28px 8px 13px",
-                      fontSize: 11,
+                      padding: denseTabs ? "5px 24px 5px 10px" : "8px 28px 8px 13px",
+                      fontSize: denseTabs ? 10 : 11,
                       fontWeight: 800,
                       cursor: "pointer",
-                      whiteSpace: "nowrap",
+                      whiteSpace: "normal",
+                      overflowWrap: "anywhere",
+                      wordBreak: "break-word",
+                      lineHeight: 1.2,
                       textAlign: "left",
+                      minHeight: denseTabs ? 30 : 40,
                       opacity: active ? 1 : 0.78,
                       transform: "none",
                       boxShadow: active ? "var(--shadow-sm)" : "none",
@@ -745,8 +829,7 @@ export default function TasksPage() {
                       if (isCustom && "id" in cat) {
                         deleteCategory(cat.id, cat.value);
                       } else if (cat.value !== "ALL") {
-                        if (activeCategory === cat.value) setActiveCategory("ALL");
-                        setHiddenCats((prev) => new Set([...prev, cat.value]));
+                        deleteBuiltInCategory(cat.value);
                       }
                     }}
                     title="Remove"
@@ -858,14 +941,9 @@ export default function TasksPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">No category</SelectItem>
-                  {BUILT_IN.map((cat) => (
+                  {availableCategories.map((cat) => (
                     <SelectItem key={cat.value} value={cat.value}>
                       {cat.label}
-                    </SelectItem>
-                  ))}
-                  {userCategories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.name}>
-                      {cat.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
