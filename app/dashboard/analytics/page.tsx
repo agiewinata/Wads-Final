@@ -2,25 +2,32 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { csrfFetch } from "@/lib/csrf-client";
+import { Responsive, useContainerWidth } from "react-grid-layout";
 import {
-  PieChart,
-  Pie,
-  Cell,
   BarChart,
   Bar,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
-  LineChart,
-  Line,
+  PieChart,
+  Pie,
+  Legend,
 } from "recharts";
+import {
+  BarChart3,
+  BookOpen,
+  Lightbulb,
+  RefreshCw,
+  PieChart as PieChartIcon,
+} from "lucide-react";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+import "react-grid-layout/css/styles.css";
+import "react-resizable/css/styles.css";
 
-type RangeKey = "7d" | "14d" | "30d" | "90d" | "180d";
+type RangeKey = "7d" | "30d" | "90d";
 
 interface AnalyticsData {
   total: number;
@@ -29,110 +36,241 @@ interface AnalyticsData {
   active: number;
   dueSoon: number;
   completionRate: number;
-  byCategory: { name: string; total: number; completed: number; incomplete: number }[];
-  byPriority: { priority: string; total: number; completed: number; incomplete: number }[];
-  trend: { date: string; completed: number; created: number; overdue: number }[];
+  byCategory: {
+    name: string;
+    total: number;
+    completed: number;
+    incomplete: number;
+  }[];
+  byPriority: {
+    priority: string;
+    total: number;
+    completed: number;
+    incomplete: number;
+  }[];
+  trend: {
+    date: string;
+    completed: number;
+    created: number;
+    overdue: number;
+  }[];
 }
 
-// ── Range options ─────────────────────────────────────────────────────────────
-
-const RANGE_OPTIONS: { key: RangeKey; label: string }[] = [
-  { key: "7d",   label: "Last 7 days"   },
-  { key: "14d",  label: "Last 2 weeks"  },
-  { key: "30d",  label: "Last month"    },
-  { key: "90d",  label: "Last 3 months" },
-  { key: "180d", label: "Last 6 months" },
+const RANGES: { key: RangeKey; label: string; sub: string }[] = [
+  { key: "7d", label: "Week", sub: "this week" },
+  { key: "30d", label: "Month", sub: "this month" },
+  { key: "90d", label: "Term", sub: "this term" },
 ];
 
-// ── Design tokens ─────────────────────────────────────────────────────────────
+const DEFAULT_LAYOUTS = {
+  lg: [
+    { i: "focus", x: 0, y: 0, w: 6, h: 4 },
+    { i: "category", x: 6, y: 0, w: 6, h: 4 },
+    { i: "status", x: 0, y: 4, w: 4, h: 4 },
+    { i: "priority", x: 4, y: 4, w: 4, h: 4 },
+    { i: "recommendations", x: 8, y: 4, w: 4, h: 4 },
+  ],
+};
+
+const LAYOUT_STORAGE_KEY = "analytics-grid-layouts";
 
 const COLORS = {
-  completed: "#111111",
-  overdue:   "#888888",
-  active:    "#d4d4d8",
+  focus: "#4F63C6",
+  best: "#F4D867",
+  active: "#4F63C6",
+  completed: "#78B86F",
+  overdue: "#B86B6B",
+  streak: "#E59A3B",
+  incomplete: "#B86B6B",
 };
 
-const CARD: React.CSSProperties = {
-  background: "#fff",
-  border: "3px solid #111",
-  borderRadius: "6px 8px 5px 7px / 7px 5px 8px 6px",
-  boxShadow: "5px 7px 0 rgba(0,0,0,0.13)",
-  padding: "20px 24px",
+const CATEGORY_COLORS = [
+  { name: "test1", bg: "#f6d1d1", color: "#b5453d", activeBg: "#b5453d" },
+  { name: "test2", bg: "#f7dfbc", color: "#b86b18", activeBg: "#b86b18" },
+  { name: "test3", bg: "#f5e8a8", color: "#8a6f13", activeBg: "#8a6f13" },
+  { name: "test4", bg: "#d9edc8", color: "#4b7f35", activeBg: "#4b7f35" },
+  { name: "test5", bg: "#ccebea", color: "#25736f", activeBg: "#25736f" },
+  { name: "test6", bg: "#d6e4ff", color: "#3858b8", activeBg: "#3858b8" },
+  { name: "test7", bg: "#eadcff", color: "#7c3aed", activeBg: "#7c3aed" },
+];
+
+const NONE_CATEGORY_COLOR = {
+  bg: "#e5e5e5",
+  color: "#6f6f6f",
+  activeBg: "#3f3f3f",
 };
 
-// ── Stat card ─────────────────────────────────────────────────────────────────
-
-function StatCard({ label, value, sub }: { label: string; value: number | string; sub?: string }) {
-  return (
-    <div style={{ ...CARD, padding: "18px 22px", minWidth: 0 }}>
-      <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "#999", marginBottom: 6 }}>
-        {label.toUpperCase()}
-      </p>
-      <p style={{ fontSize: 36, fontWeight: 800, color: "#111", lineHeight: 1 }}>{value}</p>
-      {sub && <p style={{ fontSize: 11, color: "#aaa", marginTop: 6 }}>{sub}</p>}
-    </div>
-  );
-}
-
-// ── Tooltip ───────────────────────────────────────────────────────────────────
-
-function ChartTooltip({ active, payload, label }: {
-  active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string;
+function ChartTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: { name: string; value: number; color: string }[];
+  label?: string;
 }) {
   if (!active || !payload?.length) return null;
+
   return (
-    <div style={{
-      background: "#fff", border: "2px solid #111", borderRadius: "3px 5px 3px 5px / 5px 3px 5px 3px",
-      padding: "8px 14px", boxShadow: "3px 4px 0 rgba(0,0,0,0.12)", fontSize: 12,
-    }}>
-      {label && <p style={{ fontWeight: 700, marginBottom: 4, color: "#111" }}>{label}</p>}
+    <div className="paper" style={{ padding: "8px 12px", fontSize: 12 }}>
+      {label && (
+        <p style={{ fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
+          {label}
+        </p>
+      )}
+
       {payload.map((p) => (
-        <p key={p.name} style={{ color: p.color, margin: "2px 0" }}>
-          {p.name}: <strong>{p.value}</strong>
+        <p key={p.name} style={{ color: "var(--ink-soft)", margin: "1px 0" }}>
+          {p.name}: <strong style={{ color: "var(--ink)" }}>{p.value}</strong>
         </p>
       ))}
     </div>
   );
 }
 
-// ── Range dropdown ────────────────────────────────────────────────────────────
-
-function RangeDropdown({ value, onChange }: { value: RangeKey; onChange: (r: RangeKey) => void }) {
+function StickyStat({
+  bg,
+  label,
+  value,
+  sub,
+}: {
+  bg: string;
+  label: string;
+  value: string | number;
+  sub?: string;
+}) {
   return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value as RangeKey)}
+    <div
+      className="sticky sticky--flat"
       style={{
-        fontSize: 11, fontWeight: 700,
-        padding: "4px 10px",
-        background: "#fff",
-        color: "#111",
-        border: "2px solid #333",
-        borderRadius: "3px 5px 3px 5px / 5px 3px 5px 3px",
-        cursor: "pointer",
-        outline: "none",
-        appearance: "none",
-        paddingRight: 24,
-        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23333'/%3E%3C/svg%3E")`,
-        backgroundRepeat: "no-repeat",
-        backgroundPosition: "right 8px center",
+        padding: "20px 24px",
+        borderRadius: 4,
+        background: bg,
       }}
     >
-      {RANGE_OPTIONS.map((o) => (
-        <option key={o.key} value={o.key}>{o.label}</option>
-      ))}
-    </select>
+      <p
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+          color: "var(--note-text)",
+          opacity: 0.65,
+          marginBottom: 6,
+        }}
+      >
+        {label}
+      </p>
+
+      <p
+        className="hand"
+        style={{
+          fontFamily: "var(--font-hand)",
+          fontSize: 40,
+          fontWeight: 700,
+          color: "var(--note-text)",
+          lineHeight: 1,
+        }}
+      >
+        {value}
+      </p>
+
+      {sub && (
+        <p
+          style={{
+            fontSize: 12,
+            color: "var(--note-text)",
+            opacity: 0.7,
+            marginTop: 6,
+          }}
+        >
+          {sub}
+        </p>
+      )}
+    </div>
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+function CardHead({ icon, title }: { icon: React.ReactNode; title: string }) {
+  return (
+    <div
+      className="drag-handle flex items-center gap-2.5 cursor-move"
+      style={{ marginBottom: 18 }}
+    >
+      <div
+        className="grid place-items-center"
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 10,
+          background: "var(--accent-soft)",
+          color: "var(--accent-text)",
+          flexShrink: 0,
+        }}
+      >
+        {icon}
+      </div>
+
+      <h2
+        style={{
+          fontFamily: "var(--font-heading)",
+          fontSize: 18,
+          fontWeight: 600,
+          color: "var(--ink)",
+          lineHeight: 1,
+        }}
+      >
+        {title}
+      </h2>
+    </div>
+  );
+}
+
+function WidgetCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="paper h-full flex flex-col"
+      style={{
+        padding: "22px 24px",
+        overflow: "hidden",
+        minHeight: 0,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function formatFocusTime(minutes: number) {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+
+  if (h <= 0) return `${m}m`;
+  if (m <= 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
 
 export default function AnalyticsPage() {
-  const [data,       setData]       = useState<AnalyticsData | null>(null);
-  const [recs,       setRecs]       = useState<string[]>([]);
-  const [loading,    setLoading]    = useState(true);
+  const { width, containerRef } = useContainerWidth({ initialWidth: 1200 });
+
+  const [data, setData] = useState<AnalyticsData | null>(null);
+  const [recs, setRecs] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
   const [recLoading, setRecLoading] = useState(false);
-  const [range,      setRange]      = useState<RangeKey>("7d");
+  const [range, setRange] = useState<RangeKey>("7d");
+  const [savedLayouts, setSavedLayouts] = useState(DEFAULT_LAYOUTS);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(LAYOUT_STORAGE_KEY);
+
+    if (stored) {
+      try {
+        setSavedLayouts(JSON.parse(stored));
+      } catch {
+        setSavedLayouts(DEFAULT_LAYOUTS);
+      }
+    }
+  }, []);
 
   const fetchData = useCallback(async (r: RangeKey) => {
     setLoading(true);
@@ -143,250 +281,550 @@ export default function AnalyticsPage() {
 
   const fetchRecs = useCallback(async () => {
     setRecLoading(true);
-    const res = await csrfFetch("/api/ai/recommendations", { method: "POST" });
+
+    const res = await csrfFetch("/api/ai/recommendations", {
+      method: "POST",
+    });
+
     if (res.ok) {
-      const json = await res.json() as { recommendations?: string[] };
+      const json = (await res.json()) as { recommendations?: string[] };
       setRecs(json.recommendations ?? []);
     }
+
     setRecLoading(false);
   }, []);
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { fetchData(range); }, [fetchData, range]);
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { fetchRecs(); },     [fetchRecs]);
+  useEffect(() => {
+    fetchData(range);
+  }, [fetchData, range]);
 
-  const handleRangeChange = (r: RangeKey) => {
-    setRange(r);
-  };
+  useEffect(() => {
+    fetchRecs();
+  }, [fetchRecs]);
+
+  const periodSub = RANGES.find((r) => r.key === range)?.sub ?? "this week";
 
   if (loading || !data) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh", color: "#aaa", fontSize: 14 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "60vh",
+          color: "var(--ink-faint)",
+          fontSize: 14,
+        }}
+      >
         Loading analytics…
       </div>
     );
   }
 
-  const statusPie = [
+  const tickInterval = range === "90d" ? 9 : range === "30d" ? 3 : 0;
+
+  const focusTrend = data.trend.map((d) => ({
+    date: d.date,
+    minutes: d.completed * 45,
+  }));
+
+  const maxFocus = Math.max(0, ...focusTrend.map((d) => d.minutes));
+  const totalFocusMinutes = focusTrend.reduce((sum, d) => sum + d.minutes, 0);
+
+  const statusData = [
+    { name: "Active", value: data.active, color: COLORS.active },
     { name: "Completed", value: data.completed, color: COLORS.completed },
-    { name: "Overdue",   value: data.overdue,   color: COLORS.overdue   },
-    { name: "Active",    value: data.active,     color: COLORS.active    },
-  ].filter((d) => d.value > 0);
+    { name: "Overdue", value: data.overdue, color: COLORS.overdue },
+  ];
 
-  const currentRangeLabel = RANGE_OPTIONS.find((o) => o.key === range)?.label ?? "";
+  const sortedCategories = [...data.byCategory].sort((a, b) => {
+    const aName = a.name ?? "None";
+    const bName = b.name ?? "None";
 
-  // Show every nth label so the x-axis doesn't crowd
-  const tickInterval =
-    range === "180d" ? 3 :
-    range === "90d"  ? 1 :
-    range === "30d"  ? 4 :
-    range === "14d"  ? 1 :
-    0; // 7d — show all 7
+    if (aName === "None") return 1;
+    if (bName === "None") return -1;
+
+    const aIndex = CATEGORY_COLORS.findIndex((c) => c.name === aName);
+    const bIndex = CATEGORY_COLORS.findIndex((c) => c.name === bName);
+
+    if (aIndex === -1 && bIndex === -1) return aName.localeCompare(bName);
+    if (aIndex === -1) return 1;
+    if (bIndex === -1) return -1;
+
+    return aIndex - bIndex;
+  });
 
   return (
-    <div className="w-full flex flex-col gap-6">
-
-      {/* ── Title ── */}
-      <h1 style={{
-        fontSize: 32, fontWeight: 800, letterSpacing: "-0.03em",
-        color: "#111", fontStyle: "italic", lineHeight: 1, paddingLeft: 2,
-      }}>
-        analytics
-      </h1>
-
-      {/* ── Stat cards ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 16 }}>
-        <StatCard label="Total Tasks" value={data.total}         sub="all time" />
-        <StatCard label="Completed"   value={data.completed}     sub={`${data.completionRate}% rate`} />
-        <StatCard label="Overdue"     value={data.overdue}       sub="need attention" />
-        <StatCard label="Active"      value={data.active}        sub="in progress" />
-        <StatCard label="Due Soon"    value={data.dueSoon}       sub="next 3 days" />
-      </div>
-
-      {/* ── Charts row 1: Pie + Trend ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 16 }}>
-
-        {/* Status breakdown */}
-        <div style={CARD}>
-          <p style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.05em", color: "#555", marginBottom: 16 }}>
-            TASK STATUS
-          </p>
-          {data.total === 0 ? (
-            <p style={{ color: "#aaa", fontSize: 13, textAlign: "center", padding: "40px 0" }}>No tasks yet</p>
-          ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie
-                  data={statusPie}
-                  cx="50%" cy="50%"
-                  innerRadius={55} outerRadius={85}
-                  paddingAngle={3} dataKey="value"
-                >
-                  {statusPie.map((entry) => (
-                    <Cell key={entry.name} fill={entry.color} stroke="#111" strokeWidth={2} />
-                  ))}
-                </Pie>
-                <Tooltip content={<ChartTooltip />} />
-                <Legend
-                  iconType="circle" iconSize={10}
-                  formatter={(v) => <span style={{ fontSize: 12, color: "#333" }}>{v}</span>}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-
-        {/* Performance trend */}
-        <div style={CARD}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-            <p style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.05em", color: "#555" }}>
-              PERFORMANCE — {currentRangeLabel.toUpperCase()}
-            </p>
-            <RangeDropdown value={range} onChange={handleRangeChange} />
-          </div>
-
-          {loading ? (
-            <div style={{ height: 220, display: "flex", alignItems: "center", justifyContent: "center", color: "#aaa", fontSize: 13 }}>
-              Loading…
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={data.trend} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 10, fill: "#999" }}
-                  tickLine={false}
-                  interval={tickInterval}
-                />
-                <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "#999" }} axisLine={false} tickLine={false} />
-                <Tooltip content={<ChartTooltip />} />
-                <Legend formatter={(v) => <span style={{ fontSize: 12, color: "#333" }}>{v}</span>} />
-                <Line
-                  type="monotone" dataKey="completed" name="Completed"
-                  stroke={COLORS.completed} strokeWidth={2.5}
-                  dot={data.trend.length <= 30 ? { r: 4, fill: "#111", stroke: "#fff", strokeWidth: 2 } : false}
-                  activeDot={{ r: 6 }}
-                />
-                <Line
-                  type="monotone" dataKey="created" name="Created"
-                  stroke="#aaa" strokeWidth={2} strokeDasharray="4 2"
-                  dot={data.trend.length <= 30 ? { r: 3, fill: "#aaa", stroke: "#fff", strokeWidth: 1.5 } : false}
-                />
-                <Line
-                  type="monotone" dataKey="overdue" name="Overdue"
-                  stroke="#888" strokeWidth={2} strokeDasharray="2 3"
-                  dot={data.trend.length <= 30 ? { r: 3, fill: "#888", stroke: "#fff", strokeWidth: 1.5 } : false}
-                  activeDot={{ r: 5 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </div>
-
-      {/* ── Charts row 2: By category + By priority ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-
-        {/* By category */}
-        <div style={CARD}>
-          <p style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.05em", color: "#555", marginBottom: 16 }}>
-            BY CATEGORY
-          </p>
-          {data.byCategory.length === 0 ? (
-            <p style={{ color: "#aaa", fontSize: 13, textAlign: "center", padding: "40px 0" }}>No categories</p>
-          ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={data.byCategory} layout="vertical" margin={{ top: 0, right: 8, left: 4, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e4e4e7" />
-                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10, fill: "#999" }} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 11, fill: "#555" }} axisLine={false} tickLine={false} />
-                <Tooltip content={<ChartTooltip />} />
-                <Legend formatter={(v) => <span style={{ fontSize: 12, color: "#333" }}>{v}</span>} />
-                <Bar dataKey="completed"  name="Completed"  stackId="a" fill={COLORS.completed} />
-                <Bar dataKey="incomplete" name="Incomplete" stackId="a" fill={COLORS.active} stroke="#bbb" strokeWidth={1} radius={[0, 3, 3, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-
-        {/* By priority */}
-        <div style={CARD}>
-          <p style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.05em", color: "#555", marginBottom: 16 }}>
-            BY PRIORITY
-          </p>
-          {data.byPriority.length === 0 ? (
-            <p style={{ color: "#aaa", fontSize: 13, textAlign: "center", padding: "40px 0" }}>No prioritised tasks</p>
-          ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={data.byPriority} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
-                <XAxis dataKey="priority" tick={{ fontSize: 11, fill: "#555" }} axisLine={false} tickLine={false} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "#999" }} axisLine={false} tickLine={false} />
-                <Tooltip content={<ChartTooltip />} />
-                <Legend formatter={(v) => <span style={{ fontSize: 12, color: "#333" }}>{v}</span>} />
-                <Bar dataKey="completed"  name="Completed"  stackId="a" fill={COLORS.completed} />
-                <Bar dataKey="incomplete" name="Incomplete" stackId="a" fill={COLORS.active} stroke="#bbb" strokeWidth={1} radius={[3, 3, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </div>
-
-      {/* ── AI Recommendations ── */}
-      <div style={CARD}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-          <p style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.05em", color: "#555" }}>
-            RECOMMENDATIONS
-          </p>
-          <button
-            onClick={fetchRecs}
-            disabled={recLoading}
+    <div ref={containerRef} className="w-full flex flex-col gap-6">
+      <div className="flex items-start justify-between flex-wrap" style={{ gap: 16 }}>
+        <div>
+          <h1
+            className="swipe"
             style={{
-              fontSize: 11, fontWeight: 700, padding: "4px 12px",
-              background: "transparent", color: recLoading ? "#aaa" : "#111",
-              border: `2px solid ${recLoading ? "#ddd" : "#333"}`,
-              borderRadius: "3px 5px 3px 5px / 5px 3px 5px 3px",
-              cursor: recLoading ? "default" : "pointer",
+              fontFamily: "var(--font-heading)",
+              fontSize: 34,
+              fontWeight: 600,
+              letterSpacing: "-0.02em",
+              color: "var(--ink)",
+              lineHeight: 1,
             }}
           >
-            {recLoading ? "thinking…" : "refresh"}
-          </button>
+            Analytics
+          </h1>
+
+          <p style={{ fontSize: 13.5, color: "var(--ink-soft)", marginTop: 10 }}>
+            Your study habits {periodSub}
+          </p>
         </div>
 
-        {recLoading ? (
-          <p style={{ color: "#aaa", fontSize: 13 }}>Generating recommendations…</p>
-        ) : recs.length === 0 ? (
-          <p style={{ color: "#aaa", fontSize: 13 }}>No recommendations available.</p>
-        ) : (
-          <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
-            {recs.map((rec, i) => (
-              <li
-                key={i}
+        <div
+          style={{
+            display: "inline-flex",
+            background: "var(--paper-2)",
+            border: "1px solid var(--line)",
+            borderRadius: 999,
+            padding: 3,
+          }}
+        >
+          {RANGES.map((r) => {
+            const active = range === r.key;
+
+            return (
+              <button
+                key={r.key}
+                onClick={() => setRange(r.key)}
                 style={{
-                  display: "flex", alignItems: "flex-start", gap: 12,
-                  padding: "10px 14px",
-                  background: "#f9f9f9",
-                  border: "1.5px solid #e4e4e7",
-                  borderRadius: "3px 5px 3px 5px / 5px 3px 5px 3px",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "6px 16px",
+                  borderRadius: 999,
+                  background: active ? "var(--paper)" : "transparent",
+                  color: active ? "var(--ink)" : "var(--ink-soft)",
+                  boxShadow: active ? "var(--shadow-sm)" : "none",
                 }}
               >
-                <span style={{
-                  width: 22, height: 22, borderRadius: "50%",
-                  background: "#111", color: "#fff",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 11, fontWeight: 800, flexShrink: 0,
-                }}>
-                  {i + 1}
-                </span>
-                <span style={{ fontSize: 13, color: "#333", lineHeight: 1.6 }}>{rec}</span>
-              </li>
-            ))}
-          </ul>
-        )}
+                {r.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+          gap: 18,
+          marginTop: 8,
+        }}
+      >
+        <StickyStat
+          bg="#F7E589"
+          label="Focus time"
+          value={formatFocusTime(totalFocusMinutes)}
+          sub={`estimated ${periodSub}`}
+        />
+
+        <StickyStat
+          bg="#F7D9A8"
+          label="Streak"
+          value={`${Math.min(data.completed, 12)} days`}
+          sub="keep it going"
+        />
+
+        <StickyStat
+          bg="#CFEFC8"
+          label="Tasks active"
+          value={data.active}
+          sub={`${data.dueSoon} due soon · ${data.total} total`}
+        />
+
+        <StickyStat
+          bg="#DFAAAA"
+          label="Tasks overdue"
+          value={data.overdue}
+          sub="need attention"
+        />
+      </div>
+
+      <Responsive
+        className="layout"
+        layouts={savedLayouts}
+        width={width}
+        breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+        cols={{ lg: 12, md: 12, sm: 6, xs: 4, xxs: 2 }}
+        rowHeight={96}
+        margin={[18, 18]}
+        containerPadding={[0, 0]}
+        draggableHandle=".drag-handle"
+        compactType={null}
+        preventCollision={false}
+        isBounded={false}
+        onLayoutChange={(_, allLayouts) => {
+          setSavedLayouts(allLayouts as typeof DEFAULT_LAYOUTS);
+          localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(allLayouts));
+        }}
+      >
+        <div key="focus">
+          <WidgetCard>
+            <CardHead icon={<BarChart3 size={17} />} title="Focus minutes per day" />
+
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={focusTrend}
+                  margin={{ top: 8, right: 8, left: -18, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
+
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 11, fill: "var(--ink-faint)" }}
+                    tickLine={false}
+                    axisLine={false}
+                    interval={tickInterval}
+                  />
+
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fontSize: 11, fill: "var(--ink-faint)" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+
+                  <Tooltip content={<ChartTooltip />} cursor={{ fill: "var(--paper-2)" }} />
+
+                  <Bar
+                    dataKey="minutes"
+                    name="Focus minutes"
+                    radius={[7, 7, 0, 0]}
+                    maxBarSize={52}
+                  >
+                    {focusTrend.map((d, i) => (
+                      <Cell
+                        key={i}
+                        fill={d.minutes === maxFocus && maxFocus > 0 ? COLORS.best : COLORS.focus}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="flex items-center gap-4" style={{ marginTop: 12 }}>
+              <span
+                className="flex items-center gap-1.5"
+                style={{ fontSize: 13, color: "var(--ink-soft)" }}
+              >
+                <span
+                  style={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: 4,
+                    background: COLORS.focus,
+                  }}
+                />
+                Focus
+              </span>
+
+              <span
+                className="flex items-center gap-1.5"
+                style={{ fontSize: 13, color: "var(--ink-soft)" }}
+              >
+                <span
+                  style={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: 4,
+                    background: COLORS.best,
+                  }}
+                />
+                Best day
+              </span>
+            </div>
+          </WidgetCard>
+        </div>
+
+        <div key="category">
+          <WidgetCard>
+            <CardHead icon={<BookOpen size={17} />} title="Task by category" />
+
+            <div
+              className="flex flex-col"
+              style={{
+                gap: 16,
+                flex: 1,
+                minHeight: 0,
+                overflowY: "auto",
+                paddingRight: 6,
+                paddingTop: 4,
+              }}
+            >
+              {data.byCategory.length === 0 ? (
+                <p
+                  style={{
+                    color: "var(--ink-faint)",
+                    fontSize: 13,
+                    textAlign: "center",
+                    padding: "48px 0",
+                  }}
+                >
+                  No categories yet
+                </p>
+              ) : (
+                sortedCategories.map((cat) => {
+                  const pct =
+                    cat.total > 0
+                      ? Math.round((cat.completed / cat.total) * 100)
+                      : 0;
+                  const categoryColor =
+                    CATEGORY_COLORS.find((c) => c.name === cat.name) ?? NONE_CATEGORY_COLOR;
+
+                  return (
+                    <div key={cat.name}>
+                      <div
+                        className="flex items-center justify-between"
+                        style={{ marginBottom: 7 }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 14,
+                            fontWeight: 600,
+                            color: categoryColor.color,
+                          }}
+                        >
+                          {cat.name}
+                        </span>
+
+                        <span
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 600,
+                            color: "var(--ink-soft)",
+                          }}
+                        >
+                          {cat.completed}/{cat.total}
+                        </span>
+                      </div>
+
+                      <div
+                        style={{
+                          height: 8,
+                          borderRadius: 999,
+                          background: categoryColor.bg,
+                          overflow: "hidden",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: `${pct}%`,
+                            height: "100%",
+                            background: categoryColor.activeBg,
+                            borderRadius: 999,
+                            transition: "width .3s",
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </WidgetCard>
+        </div>
+
+        <div key="status">
+          <WidgetCard>
+            <CardHead icon={<PieChartIcon size={17} />} title="Task status" />
+
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={statusData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius="52%"
+                    outerRadius="76%"
+                    paddingAngle={4}
+                  >
+                    {statusData.map((entry) => (
+                      <Cell key={entry.name} fill={entry.color} />
+                    ))}
+                  </Pie>
+
+                  <Tooltip content={<ChartTooltip />} />
+
+                  <Legend
+                    iconType="circle"
+                    wrapperStyle={{
+                      fontSize: 12,
+                      color: "var(--ink-soft)",
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </WidgetCard>
+        </div>
+
+        <div key="priority">
+          <WidgetCard>
+            <CardHead icon={<BarChart3 size={17} />} title="Task by priority" />
+
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={data.byPriority}
+                  margin={{ top: 8, right: 8, left: -18, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
+
+                  <XAxis
+                    dataKey="priority"
+                    tick={{ fontSize: 11, fill: "var(--ink-soft)" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fontSize: 11, fill: "var(--ink-faint)" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+
+                  <Tooltip content={<ChartTooltip />} cursor={{ fill: "var(--paper-2)" }} />
+
+                  <Legend
+                    wrapperStyle={{
+                      fontSize: 12,
+                      color: "var(--ink-soft)",
+                      paddingTop: 8,
+                    }}
+                  />
+
+                  <Bar
+                    dataKey="completed"
+                    name="Completed"
+                    stackId="a"
+                    fill={COLORS.completed}
+                  />
+
+                  <Bar
+                    dataKey="incomplete"
+                    name="Not completed"
+                    stackId="a"
+                    fill={COLORS.incomplete}
+                    radius={[6, 6, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </WidgetCard>
+        </div>
+
+        <div key="recommendations">
+          <WidgetCard>
+            <div
+              className="flex items-center justify-between"
+              style={{ marginBottom: 18 }}
+            >
+              <CardHead icon={<Lightbulb size={17} />} title="Recommendations" />
+
+              <button
+                onClick={fetchRecs}
+                disabled={recLoading}
+                className="btn-paper"
+                style={{
+                  padding: "8px 13px",
+                  fontSize: 13,
+                  opacity: recLoading ? 0.5 : 1,
+                  flexShrink: 0,
+                }}
+              >
+                <RefreshCw size={15} className={recLoading ? "animate-spin" : ""} />
+                {recLoading ? "" : "Refresh"}
+              </button>
+            </div>
+
+            <div
+              className="flex flex-col"
+              style={{
+                gap: 10,
+                flex: 1,
+                minHeight: 0,
+                overflowY: "auto",
+                paddingRight: 4,
+              }}
+            >
+              {recLoading ? (
+                <p
+                  style={{
+                    color: "var(--ink-faint)",
+                    fontSize: 13,
+                    fontStyle: "italic",
+                  }}
+                >
+                  Generating recommendations…
+                </p>
+              ) : recs.length === 0 ? (
+                <p
+                  style={{
+                    color: "var(--ink-faint)",
+                    fontSize: 13,
+                    fontStyle: "italic",
+                  }}
+                >
+                  No recommendations available.
+                </p>
+              ) : (
+                recs.map((rec, i) => (
+                  <div
+                    key={i}
+                    className="flex items-start gap-3"
+                    style={{
+                      padding: "12px 14px",
+                      background: "var(--paper-2)",
+                      border: "1px solid var(--line)",
+                      borderRadius: 12,
+                    }}
+                  >
+                    <span
+                      className="grid place-items-center"
+                      style={{
+                        flexShrink: 0,
+                        width: 22,
+                        height: 22,
+                        background: COLORS.focus,
+                        color: "#fff",
+                        borderRadius: "50%",
+                        fontSize: 11,
+                        fontWeight: 600,
+                        marginTop: 1,
+                      }}
+                    >
+                      {i + 1}
+                    </span>
+
+                    <span
+                      style={{
+                        fontSize: 13,
+                        color: "var(--ink-soft)",
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {rec}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </WidgetCard>
+        </div>
+      </Responsive>
     </div>
   );
 }

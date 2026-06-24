@@ -439,7 +439,7 @@ export default function TasksPage() {
               lineHeight: 1,
             }}
           >
-            To-do list
+            Tasks
           </h1>
 
           <p style={{ fontSize: 13.5, color: "var(--ink-soft)", marginTop: 10 }}>
