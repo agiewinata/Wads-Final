@@ -21,7 +21,7 @@ type Props = {
   };
 };
 
-const layouts = {
+const DEFAULT_LAYOUTS = {
   lg: [
     { i: "profile", x: 0, y: 0, w: 5, h: 4 },
     { i: "calendar", x: 5, y: 0, w: 7, h: 4 },
@@ -30,9 +30,13 @@ const layouts = {
   ],
 };
 
+const LAYOUT_STORAGE_KEY = "dashboard-grid-layouts";
+
 export default function DashboardGrid({ user }: Props) {
   const { width, containerRef } = useContainerWidth({ initialWidth: 1200 });
+
   const [dueToday, setDueToday] = useState<number | null>(null);
+  const [savedLayouts, setSavedLayouts] = useState(DEFAULT_LAYOUTS);
 
   const dateStr = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -43,12 +47,25 @@ export default function DashboardGrid({ user }: Props) {
   const focusedThisWeek = "2h 15m focused this week";
 
   useEffect(() => {
+    const stored = localStorage.getItem(LAYOUT_STORAGE_KEY);
+
+    if (stored) {
+      try {
+        setSavedLayouts(JSON.parse(stored));
+      } catch {
+        setSavedLayouts(DEFAULT_LAYOUTS);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     async function loadCount() {
       try {
         const [taskRes, workspaceRes] = await Promise.all([
           fetch("/api/tasks"),
           fetch("/api/workspace-tasks"),
         ]);
+
         if (!taskRes.ok) return;
 
         const tasks: { dueDate: string | null; completed: boolean }[] =
@@ -63,6 +80,7 @@ export default function DashboardGrid({ user }: Props) {
 
         const n = allTasks.filter((t) => {
           if (!t.dueDate || t.completed) return false;
+
           const d = new Date(t.dueDate);
 
           return (
@@ -82,7 +100,9 @@ export default function DashboardGrid({ user }: Props) {
   const subtitle =
     dueToday === null
       ? `${dateStr} · ${focusedThisWeek}`
-      : `${dateStr} · ${dueToday} task${dueToday === 1 ? "" : "s"} due today · ${focusedThisWeek}`;
+      : `${dateStr} · ${dueToday} task${
+          dueToday === 1 ? "" : "s"
+        } due today · ${focusedThisWeek}`;
 
   return (
     <div ref={containerRef}>
@@ -121,13 +141,21 @@ export default function DashboardGrid({ user }: Props) {
 
       <Responsive
         className="layout"
-        layouts={layouts}
+        layouts={savedLayouts}
         width={width}
         breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
         cols={{ lg: 12, md: 12, sm: 6, xs: 4, xxs: 2 }}
         rowHeight={80}
         margin={[16, 16]}
+        containerPadding={[0, 0]}
         draggableHandle=".drag-handle"
+        compactType={null}
+        preventCollision={false}
+        isBounded={false}
+        onLayoutChange={(_, allLayouts) => {
+          setSavedLayouts(allLayouts as typeof DEFAULT_LAYOUTS);
+          localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(allLayouts));
+        }}
       >
         <div key="profile" className="drag-handle cursor-move">
           <ProfileCard name={user.name} email={user.email} createdAt={user.createdAt} />
