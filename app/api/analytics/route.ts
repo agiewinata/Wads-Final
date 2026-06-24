@@ -57,20 +57,50 @@ export async function GET(req: NextRequest) {
   });
 
   // By category (personal tasks only — workspace tasks have no category)
-  const catMap = new Map<string, { total: number; completed: number }>();
+  const catMap = new Map<
+    string,
+    {
+      total: number;
+      completed: number;
+      createdAt: Date;
+    }
+  >();
+
   for (const t of personalTasks) {
     const key = t.category ?? "None";
-    if (!catMap.has(key)) catMap.set(key, { total: 0, completed: 0 });
+
+    if (!catMap.has(key)) {
+      catMap.set(key, {
+        total: 0,
+        completed: 0,
+        createdAt: t.createdAt,
+      });
+    }
+
     const e = catMap.get(key)!;
     e.total++;
+
     if (t.completed) e.completed++;
+
+    if (t.createdAt < e.createdAt) {
+      e.createdAt = t.createdAt;
+    }
   }
-  const byCategory = [...catMap.entries()].map(([name, v]) => ({
-    name,
-    total: v.total,
-    completed: v.completed,
-    incomplete: v.total - v.completed,
-  }));
+
+  const byCategory = [...catMap.entries()]
+    .map(([name, v]) => ({
+      name,
+      total: v.total,
+      completed: v.completed,
+      incomplete: v.total - v.completed,
+      createdAt: v.createdAt.toISOString(),
+    }))
+    .sort((a, b) => {
+      if (a.name === "None") return 1;
+      if (b.name === "None") return -1;
+
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
 
   // By priority
   const priMap = new Map<number, { total: number; completed: number }>();

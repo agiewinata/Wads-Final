@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { csrfFetch } from "@/lib/csrf-client";
 import { Responsive, useContainerWidth } from "react-grid-layout";
 import {
@@ -21,6 +21,7 @@ import {
   BookOpen,
   Lightbulb,
   RefreshCw,
+  RotateCcw,
   PieChart as PieChartIcon,
 } from "lucide-react";
 
@@ -41,6 +42,8 @@ interface AnalyticsData {
     total: number;
     completed: number;
     incomplete: number;
+    createdAt?: string;
+    order?: number;
   }[];
   byPriority: {
     priority: string;
@@ -59,7 +62,7 @@ interface AnalyticsData {
 const RANGES: { key: RangeKey; label: string; sub: string }[] = [
   { key: "7d", label: "Week", sub: "this week" },
   { key: "30d", label: "Month", sub: "this month" },
-  { key: "90d", label: "Term", sub: "this term" },
+  { key: "90d", label: "Year", sub: "this year" },
 ];
 
 const DEFAULT_LAYOUTS = {
@@ -72,7 +75,44 @@ const DEFAULT_LAYOUTS = {
   ],
 };
 
-const LAYOUT_STORAGE_KEY = "analytics-grid-layouts";
+// bump this version whenever DEFAULT_LAYOUTS changes — it auto-retires stale saves
+const LAYOUT_STORAGE_KEY = "analytics-grid-layouts-v4";
+const REQUIRED_WIDGETS = ["focus", "category", "status", "priority", "recommendations"];
+
+function cloneDefault() {
+  return JSON.parse(JSON.stringify(DEFAULT_LAYOUTS)) as typeof DEFAULT_LAYOUTS;
+}
+
+function isValidLayout(value: unknown): value is typeof DEFAULT_LAYOUTS {
+  if (!value || typeof value !== "object") return false;
+
+  const layouts = value as typeof DEFAULT_LAYOUTS;
+  const lg = layouts.lg;
+
+  if (!Array.isArray(lg)) return false;
+
+  // must contain exactly the current widget set (no missing, no leftover from old versions)
+  const keys = lg.map((item) => item.i).sort();
+  const required = [...REQUIRED_WIDGETS].sort();
+  if (keys.length !== required.length || keys.some((k, idx) => k !== required[idx])) {
+    return false;
+  }
+
+  return REQUIRED_WIDGETS.every((key) =>
+    lg.some(
+      (item) =>
+        item.i === key &&
+        typeof item.x === "number" &&
+        typeof item.y === "number" &&
+        typeof item.w === "number" &&
+        typeof item.h === "number" &&
+        item.w > 0 &&
+        item.h > 0 &&
+        item.x >= 0 &&
+        item.x + item.w <= 12
+    )
+  );
+}
 
 const COLORS = {
   focus: "#4F63C6",
@@ -85,19 +125,19 @@ const COLORS = {
 };
 
 const CATEGORY_COLORS = [
-  { name: "test1", bg: "#f6d1d1", color: "#b5453d", activeBg: "#b5453d" },
-  { name: "test2", bg: "#f7dfbc", color: "#b86b18", activeBg: "#b86b18" },
-  { name: "test3", bg: "#f5e8a8", color: "#8a6f13", activeBg: "#8a6f13" },
-  { name: "test4", bg: "#d9edc8", color: "#4b7f35", activeBg: "#4b7f35" },
-  { name: "test5", bg: "#ccebea", color: "#25736f", activeBg: "#25736f" },
-  { name: "test6", bg: "#d6e4ff", color: "#3858b8", activeBg: "#3858b8" },
-  { name: "test7", bg: "#eadcff", color: "#7c3aed", activeBg: "#7c3aed" },
+  { bg: "#f6d1d1", color: "#b5453d", activeBg: "#b5453d" },
+  { bg: "#f7dfbc", color: "#b86b18", activeBg: "#b86b18" },
+  { bg: "#f5e8a8", color: "#8a6f13", activeBg: "#8a6f13" },
+  { bg: "#d9edc8", color: "#4b7f35", activeBg: "#4b7f35" },
+  { bg: "#ccebea", color: "#25736f", activeBg: "#25736f" },
+  { bg: "#d6e4ff", color: "#3858b8", activeBg: "#3858b8" },
+  { bg: "#eadcff", color: "#7c3aed", activeBg: "#7c3aed" },
 ];
 
 const NONE_CATEGORY_COLOR = {
-  bg: "#e5e5e5",
-  color: "#6f6f6f",
-  activeBg: "#3f3f3f",
+  bg: "#E7E7E7",
+  color: "#707070",
+  activeBg: "#222222",
 };
 
 function ChartTooltip({
@@ -226,13 +266,19 @@ function CardHead({ icon, title }: { icon: React.ReactNode; title: string }) {
   );
 }
 
-function WidgetCard({ children }: { children: React.ReactNode }) {
+function WidgetCard({
+  children,
+  scroll = false,
+}: {
+  children: React.ReactNode;
+  scroll?: boolean;
+}) {
   return (
     <div
       className="paper h-full flex flex-col"
       style={{
         padding: "22px 24px",
-        overflow: "hidden",
+        overflow: scroll ? "auto" : "hidden",
         minHeight: 0,
       }}
     >
@@ -259,17 +305,33 @@ export default function AnalyticsPage() {
   const [recLoading, setRecLoading] = useState(false);
   const [range, setRange] = useState<RangeKey>("7d");
   const [savedLayouts, setSavedLayouts] = useState(DEFAULT_LAYOUTS);
+  const [layoutReady, setLayoutReady] = useState(false);
+  const [resetCounter, setResetCounter] = useState(0);
+
+  // only persist once the user has actually dragged/resized something
+  const userTouched = useRef(false);
 
   useEffect(() => {
     const stored = localStorage.getItem(LAYOUT_STORAGE_KEY);
+    let nextLayouts = cloneDefault();
 
     if (stored) {
       try {
-        setSavedLayouts(JSON.parse(stored));
+        const parsed = JSON.parse(stored);
+
+        if (isValidLayout(parsed)) {
+          nextLayouts = parsed;
+          userTouched.current = true; // they have a customised layout already
+        } else {
+          localStorage.removeItem(LAYOUT_STORAGE_KEY);
+        }
       } catch {
-        setSavedLayouts(DEFAULT_LAYOUTS);
+        localStorage.removeItem(LAYOUT_STORAGE_KEY);
       }
     }
+
+    setSavedLayouts(nextLayouts);
+    setLayoutReady(true);
   }, []);
 
   const fetchData = useCallback(async (r: RangeKey) => {
@@ -301,6 +363,13 @@ export default function AnalyticsPage() {
   useEffect(() => {
     fetchRecs();
   }, [fetchRecs]);
+
+  function resetLayout() {
+    localStorage.removeItem(LAYOUT_STORAGE_KEY);
+    userTouched.current = false;
+    setSavedLayouts(cloneDefault());
+    setResetCounter((c) => c + 1); // remount the grid so RGL picks up defaults cleanly
+  }
 
   const periodSub = RANGES.find((r) => r.key === range)?.sub ?? "this week";
 
@@ -344,19 +413,20 @@ export default function AnalyticsPage() {
     if (aName === "None") return 1;
     if (bName === "None") return -1;
 
-    const aIndex = CATEGORY_COLORS.findIndex((c) => c.name === aName);
-    const bIndex = CATEGORY_COLORS.findIndex((c) => c.name === bName);
+    if (a.order !== undefined && b.order !== undefined) {
+      return a.order - b.order;
+    }
 
-    if (aIndex === -1 && bIndex === -1) return aName.localeCompare(bName);
-    if (aIndex === -1) return 1;
-    if (bIndex === -1) return -1;
+    if (a.createdAt && b.createdAt) {
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    }
 
-    return aIndex - bIndex;
+    return 0;
   });
 
   return (
-    <div ref={containerRef} className="w-full flex flex-col gap-6">
-      <div className="flex items-start justify-between flex-wrap" style={{ gap: 16 }}>
+    <div ref={containerRef}>
+      <div className="flex items-start justify-between flex-wrap" style={{ gap: 16, marginBottom: 22 }}>
         <div>
           <h1
             className="swipe"
@@ -377,38 +447,51 @@ export default function AnalyticsPage() {
           </p>
         </div>
 
-        <div
-          style={{
-            display: "inline-flex",
-            background: "var(--paper-2)",
-            border: "1px solid var(--line)",
-            borderRadius: 999,
-            padding: 3,
-          }}
-        >
-          {RANGES.map((r) => {
-            const active = range === r.key;
+        <div className="flex items-center" style={{ gap: 10 }}>
+          {userTouched.current && (
+            <button
+              onClick={resetLayout}
+              className="btn-paper"
+              title="Restore the default arrangement"
+              style={{ padding: "8px 13px", fontSize: 13 }}
+            >
+              <RotateCcw size={15} /> Reset layout
+            </button>
+          )}
 
-            return (
-              <button
-                key={r.key}
-                onClick={() => setRange(r.key)}
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  border: "none",
-                  cursor: "pointer",
-                  padding: "6px 16px",
-                  borderRadius: 999,
-                  background: active ? "var(--paper)" : "transparent",
-                  color: active ? "var(--ink)" : "var(--ink-soft)",
-                  boxShadow: active ? "var(--shadow-sm)" : "none",
-                }}
-              >
-                {r.label}
-              </button>
-            );
-          })}
+          <div
+            style={{
+              display: "inline-flex",
+              background: "var(--paper-2)",
+              border: "1px solid var(--line)",
+              borderRadius: 999,
+              padding: 3,
+            }}
+          >
+            {RANGES.map((r) => {
+              const active = range === r.key;
+
+              return (
+                <button
+                  key={r.key}
+                  onClick={() => setRange(r.key)}
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "6px 16px",
+                    borderRadius: 999,
+                    background: active ? "var(--paper)" : "transparent",
+                    color: active ? "var(--ink)" : "var(--ink-soft)",
+                    boxShadow: active ? "var(--shadow-sm)" : "none",
+                  }}
+                >
+                  {r.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -417,7 +500,7 @@ export default function AnalyticsPage() {
           display: "grid",
           gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
           gap: 18,
-          marginTop: 8,
+          marginBottom: 24,
         }}
       >
         <StickyStat
@@ -449,382 +532,390 @@ export default function AnalyticsPage() {
         />
       </div>
 
-      <Responsive
-        className="layout"
-        layouts={savedLayouts}
-        width={width}
-        breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-        cols={{ lg: 12, md: 12, sm: 6, xs: 4, xxs: 2 }}
-        rowHeight={96}
-        margin={[18, 18]}
-        containerPadding={[0, 0]}
-        draggableHandle=".drag-handle"
-        compactType={null}
-        preventCollision={false}
-        isBounded={false}
-        onLayoutChange={(_, allLayouts) => {
-          setSavedLayouts(allLayouts as typeof DEFAULT_LAYOUTS);
-          localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(allLayouts));
-        }}
-      >
-        <div key="focus">
-          <WidgetCard>
-            <CardHead icon={<BarChart3 size={17} />} title="Focus minutes per day" />
+      {layoutReady && width > 0 && (
+        <Responsive
+          key={resetCounter}
+          className="layout"
+          layouts={savedLayouts}
+          width={width}
+          breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+          cols={{ lg: 12, md: 12, sm: 6, xs: 4, xxs: 2 }}
+          rowHeight={96}
+          margin={[18, 18]}
+          containerPadding={[0, 0]}
+          draggableHandle=".drag-handle"
+          compactType="vertical"
+          preventCollision={false}
+          isBounded={false}
+          onDragStop={() => { userTouched.current = true; }}
+          onResizeStop={() => { userTouched.current = true; }}
+          onLayoutChange={(_, allLayouts) => {
+            // only persist after a genuine user rearrangement, never on mount/resize
+            if (!userTouched.current) return;
+            setSavedLayouts(allLayouts as typeof DEFAULT_LAYOUTS);
+            localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(allLayouts));
+          }}
+        >
+          <div key="focus">
+            <WidgetCard>
+              <CardHead icon={<BarChart3 size={17} />} title="Focus minutes per day" />
 
-            <div style={{ flex: 1, minHeight: 0 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={focusTrend}
-                  margin={{ top: 8, right: 8, left: -18, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
-
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 11, fill: "var(--ink-faint)" }}
-                    tickLine={false}
-                    axisLine={false}
-                    interval={tickInterval}
-                  />
-
-                  <YAxis
-                    allowDecimals={false}
-                    tick={{ fontSize: 11, fill: "var(--ink-faint)" }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-
-                  <Tooltip content={<ChartTooltip />} cursor={{ fill: "var(--paper-2)" }} />
-
-                  <Bar
-                    dataKey="minutes"
-                    name="Focus minutes"
-                    radius={[7, 7, 0, 0]}
-                    maxBarSize={52}
+              <div style={{ height: 320, minHeight: 320 }}>
+                  <ResponsiveContainer width="100%" height={320}>
+                  <BarChart
+                    data={focusTrend}
+                    margin={{ top: 8, right: 8, left: -18, bottom: 0 }}
                   >
-                    {focusTrend.map((d, i) => (
-                      <Cell
-                        key={i}
-                        fill={d.minutes === maxFocus && maxFocus > 0 ? COLORS.best : COLORS.focus}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
 
-            <div className="flex items-center gap-4" style={{ marginTop: 12 }}>
-              <span
-                className="flex items-center gap-1.5"
-                style={{ fontSize: 13, color: "var(--ink-soft)" }}
-              >
-                <span
-                  style={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: 4,
-                    background: COLORS.focus,
-                  }}
-                />
-                Focus
-              </span>
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 11, fill: "var(--ink-faint)" }}
+                      tickLine={false}
+                      axisLine={false}
+                      interval={tickInterval}
+                    />
 
-              <span
-                className="flex items-center gap-1.5"
-                style={{ fontSize: 13, color: "var(--ink-soft)" }}
-              >
-                <span
-                  style={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: 4,
-                    background: COLORS.best,
-                  }}
-                />
-                Best day
-              </span>
-            </div>
-          </WidgetCard>
-        </div>
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 11, fill: "var(--ink-faint)" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
 
-        <div key="category">
-          <WidgetCard>
-            <CardHead icon={<BookOpen size={17} />} title="Task by category" />
+                    <Tooltip content={<ChartTooltip />} cursor={{ fill: "var(--paper-2)" }} />
 
-            <div
-              className="flex flex-col"
-              style={{
-                gap: 16,
-                flex: 1,
-                minHeight: 0,
-                overflowY: "auto",
-                paddingRight: 6,
-                paddingTop: 4,
-              }}
-            >
-              {data.byCategory.length === 0 ? (
-                <p
-                  style={{
-                    color: "var(--ink-faint)",
-                    fontSize: 13,
-                    textAlign: "center",
-                    padding: "48px 0",
-                  }}
-                >
-                  No categories yet
-                </p>
-              ) : (
-                sortedCategories.map((cat) => {
-                  const pct =
-                    cat.total > 0
-                      ? Math.round((cat.completed / cat.total) * 100)
-                      : 0;
-                  const categoryColor =
-                    CATEGORY_COLORS.find((c) => c.name === cat.name) ?? NONE_CATEGORY_COLOR;
-
-                  return (
-                    <div key={cat.name}>
-                      <div
-                        className="flex items-center justify-between"
-                        style={{ marginBottom: 7 }}
-                      >
-                        <span
-                          style={{
-                            fontSize: 14,
-                            fontWeight: 600,
-                            color: categoryColor.color,
-                          }}
-                        >
-                          {cat.name}
-                        </span>
-
-                        <span
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 600,
-                            color: "var(--ink-soft)",
-                          }}
-                        >
-                          {cat.completed}/{cat.total}
-                        </span>
-                      </div>
-
-                      <div
-                        style={{
-                          height: 8,
-                          borderRadius: 999,
-                          background: categoryColor.bg,
-                          overflow: "hidden",
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: `${pct}%`,
-                            height: "100%",
-                            background: categoryColor.activeBg,
-                            borderRadius: 999,
-                            transition: "width .3s",
-                          }}
+                    <Bar
+                      dataKey="minutes"
+                      name="Focus minutes"
+                      radius={[7, 7, 0, 0]}
+                      maxBarSize={52}
+                    >
+                      {focusTrend.map((d, i) => (
+                        <Cell
+                          key={i}
+                          fill={d.minutes === maxFocus && maxFocus > 0 ? COLORS.best : COLORS.focus}
                         />
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </WidgetCard>
-        </div>
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
 
-        <div key="status">
-          <WidgetCard>
-            <CardHead icon={<PieChartIcon size={17} />} title="Task status" />
-
-            <div style={{ flex: 1, minHeight: 0 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={statusData}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius="52%"
-                    outerRadius="76%"
-                    paddingAngle={4}
-                  >
-                    {statusData.map((entry) => (
-                      <Cell key={entry.name} fill={entry.color} />
-                    ))}
-                  </Pie>
-
-                  <Tooltip content={<ChartTooltip />} />
-
-                  <Legend
-                    iconType="circle"
-                    wrapperStyle={{
-                      fontSize: 12,
-                      color: "var(--ink-soft)",
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </WidgetCard>
-        </div>
-
-        <div key="priority">
-          <WidgetCard>
-            <CardHead icon={<BarChart3 size={17} />} title="Task by priority" />
-
-            <div style={{ flex: 1, minHeight: 0 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={data.byPriority}
-                  margin={{ top: 8, right: 8, left: -18, bottom: 0 }}
+              <div className="flex items-center gap-4" style={{ marginTop: 12 }}>
+                <span
+                  className="flex items-center gap-1.5"
+                  style={{ fontSize: 13, color: "var(--ink-soft)" }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
-
-                  <XAxis
-                    dataKey="priority"
-                    tick={{ fontSize: 11, fill: "var(--ink-soft)" }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-
-                  <YAxis
-                    allowDecimals={false}
-                    tick={{ fontSize: 11, fill: "var(--ink-faint)" }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-
-                  <Tooltip content={<ChartTooltip />} cursor={{ fill: "var(--paper-2)" }} />
-
-                  <Legend
-                    wrapperStyle={{
-                      fontSize: 12,
-                      color: "var(--ink-soft)",
-                      paddingTop: 8,
+                  <span
+                    style={{
+                      width: 12,
+                      height: 12,
+                      borderRadius: 4,
+                      background: COLORS.focus,
                     }}
                   />
+                  Focus
+                </span>
 
-                  <Bar
-                    dataKey="completed"
-                    name="Completed"
-                    stackId="a"
-                    fill={COLORS.completed}
+                <span
+                  className="flex items-center gap-1.5"
+                  style={{ fontSize: 13, color: "var(--ink-soft)" }}
+                >
+                  <span
+                    style={{
+                      width: 12,
+                      height: 12,
+                      borderRadius: 4,
+                      background: COLORS.best,
+                    }}
                   />
+                  Best day
+                </span>
+              </div>
+            </WidgetCard>
+          </div>
 
-                  <Bar
-                    dataKey="incomplete"
-                    name="Not completed"
-                    stackId="a"
-                    fill={COLORS.incomplete}
-                    radius={[6, 6, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </WidgetCard>
-        </div>
+          <div key="category">
+            <WidgetCard scroll>
+              <CardHead icon={<BookOpen size={17} />} title="Task by category" />
 
-        <div key="recommendations">
-          <WidgetCard>
-            <div
-              className="flex items-center justify-between"
-              style={{ marginBottom: 18 }}
-            >
-              <CardHead icon={<Lightbulb size={17} />} title="Recommendations" />
-
-              <button
-                onClick={fetchRecs}
-                disabled={recLoading}
-                className="btn-paper"
+              <div
+                className="flex flex-col"
                 style={{
-                  padding: "8px 13px",
-                  fontSize: 13,
-                  opacity: recLoading ? 0.5 : 1,
-                  flexShrink: 0,
+                  gap: 16,
+                  flex: 1,
+                  minHeight: 0,
+                  overflowY: "auto",
+                  paddingRight: 6,
+                  paddingTop: 4,
                 }}
               >
-                <RefreshCw size={15} className={recLoading ? "animate-spin" : ""} />
-                {recLoading ? "" : "Refresh"}
-              </button>
-            </div>
-
-            <div
-              className="flex flex-col"
-              style={{
-                gap: 10,
-                flex: 1,
-                minHeight: 0,
-                overflowY: "auto",
-                paddingRight: 4,
-              }}
-            >
-              {recLoading ? (
-                <p
-                  style={{
-                    color: "var(--ink-faint)",
-                    fontSize: 13,
-                    fontStyle: "italic",
-                  }}
-                >
-                  Generating recommendations…
-                </p>
-              ) : recs.length === 0 ? (
-                <p
-                  style={{
-                    color: "var(--ink-faint)",
-                    fontSize: 13,
-                    fontStyle: "italic",
-                  }}
-                >
-                  No recommendations available.
-                </p>
-              ) : (
-                recs.map((rec, i) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-3"
+                {data.byCategory.length === 0 ? (
+                  <p
                     style={{
-                      padding: "12px 14px",
-                      background: "var(--paper-2)",
-                      border: "1px solid var(--line)",
-                      borderRadius: 12,
+                      color: "var(--ink-faint)",
+                      fontSize: 13,
+                      textAlign: "center",
+                      padding: "48px 0",
                     }}
                   >
-                    <span
-                      className="grid place-items-center"
-                      style={{
-                        flexShrink: 0,
-                        width: 22,
-                        height: 22,
-                        background: COLORS.focus,
-                        color: "#fff",
-                        borderRadius: "50%",
-                        fontSize: 11,
-                        fontWeight: 600,
-                        marginTop: 1,
-                      }}
-                    >
-                      {i + 1}
-                    </span>
+                    No categories yet
+                  </p>
+                ) : (
+                  sortedCategories.map((cat, i) => {
+                    const pct =
+                      cat.total > 0 ? Math.round((cat.completed / cat.total) * 100) : 0;
 
-                    <span
-                      style={{
-                        fontSize: 13,
+                    const categoryColor =
+                      cat.name === "None"
+                        ? NONE_CATEGORY_COLOR
+                        : CATEGORY_COLORS[i % CATEGORY_COLORS.length];
+
+                    return (
+                      <div key={cat.name}>
+                        <div
+                          className="flex items-center justify-between"
+                          style={{ marginBottom: 7 }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 14,
+                              fontWeight: 600,
+                              color: categoryColor.color,
+                            }}
+                          >
+                            {cat.name}
+                          </span>
+
+                          <span
+                            style={{
+                              fontSize: 13,
+                              fontWeight: 600,
+                              color: "var(--ink-soft)",
+                            }}
+                          >
+                            {cat.completed}/{cat.total}
+                          </span>
+                        </div>
+
+                        <div
+                          style={{
+                            height: 8,
+                            borderRadius: 999,
+                            background: categoryColor.bg,
+                            overflow: "hidden",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: `${pct}%`,
+                              height: "100%",
+                              background: categoryColor.activeBg,
+                              borderRadius: 999,
+                              transition: "width .3s",
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </WidgetCard>
+          </div>
+
+          <div key="status">
+            <WidgetCard>
+              <CardHead icon={<PieChartIcon size={17} />} title="Task status" />
+
+              <div style={{ height: 300, minHeight: 300 }}>
+                  <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={statusData}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius="52%"
+                      outerRadius="76%"
+                      paddingAngle={4}
+                    >
+                      {statusData.map((entry) => (
+                        <Cell key={entry.name} fill={entry.color} />
+                      ))}
+                    </Pie>
+
+                    <Tooltip content={<ChartTooltip />} />
+
+                    <Legend
+                      iconType="circle"
+                      wrapperStyle={{
+                        fontSize: 12,
                         color: "var(--ink-soft)",
-                        lineHeight: 1.5,
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </WidgetCard>
+          </div>
+
+          <div key="priority">
+            <WidgetCard>
+              <CardHead icon={<BarChart3 size={17} />} title="Task by priority" />
+
+              <div style={{ height: 260, minHeight: 260 }}>
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart
+                    data={data.byPriority}
+                    margin={{ top: 8, right: 8, left: -18, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
+
+                    <XAxis
+                      dataKey="priority"
+                      tick={{ fontSize: 11, fill: "var(--ink-soft)" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 11, fill: "var(--ink-faint)" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+
+                    <Tooltip content={<ChartTooltip />} cursor={{ fill: "var(--paper-2)" }} />
+
+                    <Legend
+                      wrapperStyle={{
+                        fontSize: 12,
+                        color: "var(--ink-soft)",
+                        paddingTop: 8,
+                      }}
+                    />
+
+                    <Bar
+                      dataKey="completed"
+                      name="Completed"
+                      stackId="a"
+                      fill={COLORS.completed}
+                    />
+
+                    <Bar
+                      dataKey="incomplete"
+                      name="Not completed"
+                      stackId="a"
+                      fill={COLORS.incomplete}
+                      radius={[6, 6, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </WidgetCard>
+          </div>
+
+          <div key="recommendations">
+            <WidgetCard scroll>
+              <div
+                className="flex items-center justify-between"
+                style={{ marginBottom: 18 }}
+              >
+                <CardHead icon={<Lightbulb size={17} />} title="Recommendations" />
+
+                <button
+                  onClick={fetchRecs}
+                  disabled={recLoading}
+                  className="btn-paper"
+                  style={{
+                    padding: "8px 13px",
+                    fontSize: 13,
+                    opacity: recLoading ? 0.5 : 1,
+                    flexShrink: 0,
+                  }}
+                >
+                  <RefreshCw size={15} className={recLoading ? "animate-spin" : ""} />
+                  {recLoading ? "" : "Refresh"}
+                </button>
+              </div>
+
+              <div
+                className="flex flex-col"
+                style={{
+                  gap: 10,
+                  flex: 1,
+                  minHeight: 0,
+                  overflowY: "auto",
+                  paddingRight: 4,
+                }}
+              >
+                {recLoading ? (
+                  <p
+                    style={{
+                      color: "var(--ink-faint)",
+                      fontSize: 13,
+                      fontStyle: "italic",
+                    }}
+                  >
+                    Generating recommendations…
+                  </p>
+                ) : recs.length === 0 ? (
+                  <p
+                    style={{
+                      color: "var(--ink-faint)",
+                      fontSize: 13,
+                      fontStyle: "italic",
+                    }}
+                  >
+                    No recommendations available.
+                  </p>
+                ) : (
+                  recs.map((rec, i) => (
+                    <div
+                      key={i}
+                      className="flex items-start gap-3"
+                      style={{
+                        padding: "12px 14px",
+                        background: "var(--paper-2)",
+                        border: "1px solid var(--line)",
+                        borderRadius: 12,
                       }}
                     >
-                      {rec}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-          </WidgetCard>
-        </div>
-      </Responsive>
+                      <span
+                        className="grid place-items-center"
+                        style={{
+                          flexShrink: 0,
+                          width: 22,
+                          height: 22,
+                          background: COLORS.focus,
+                          color: "#fff",
+                          borderRadius: "50%",
+                          fontSize: 11,
+                          fontWeight: 600,
+                          marginTop: 1,
+                        }}
+                      >
+                        {i + 1}
+                      </span>
+
+                      <span
+                        style={{
+                          fontSize: 13,
+                          color: "var(--ink-soft)",
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {rec}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </WidgetCard>
+          </div>
+        </Responsive>
+      )}
     </div>
   );
 }

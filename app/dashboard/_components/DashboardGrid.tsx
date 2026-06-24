@@ -28,9 +28,33 @@ const DEFAULT_LAYOUTS = {
     { i: "timer", x: 0, y: 4, w: 5, h: 4 },
     { i: "recommendations", x: 5, y: 4, w: 7, h: 4 },
   ],
+  md: [
+    { i: "profile", x: 0, y: 0, w: 5, h: 4 },
+    { i: "calendar", x: 5, y: 0, w: 7, h: 4 },
+    { i: "timer", x: 0, y: 4, w: 5, h: 4 },
+    { i: "recommendations", x: 5, y: 4, w: 7, h: 4 },
+  ],
+  sm: [
+    { i: "profile", x: 0, y: 0, w: 6, h: 4 },
+    { i: "calendar", x: 0, y: 4, w: 6, h: 4 },
+    { i: "timer", x: 0, y: 8, w: 6, h: 4 },
+    { i: "recommendations", x: 0, y: 12, w: 6, h: 4 },
+  ],
+  xs: [
+    { i: "profile", x: 0, y: 0, w: 4, h: 4 },
+    { i: "calendar", x: 0, y: 4, w: 4, h: 4 },
+    { i: "timer", x: 0, y: 8, w: 4, h: 4 },
+    { i: "recommendations", x: 0, y: 12, w: 4, h: 4 },
+  ],
+  xxs: [
+    { i: "profile", x: 0, y: 0, w: 2, h: 4 },
+    { i: "calendar", x: 0, y: 4, w: 2, h: 4 },
+    { i: "timer", x: 0, y: 8, w: 2, h: 4 },
+    { i: "recommendations", x: 0, y: 12, w: 2, h: 4 },
+  ],
 };
 
-const LAYOUT_STORAGE_KEY = "dashboard-grid-layouts";
+const LAYOUT_STORAGE_KEY = "dashboard-grid-layouts-v2";
 
 export default function DashboardGrid({ user }: Props) {
   const { width, containerRef } = useContainerWidth({ initialWidth: 1200 });
@@ -53,6 +77,7 @@ export default function DashboardGrid({ user }: Props) {
       try {
         setSavedLayouts(JSON.parse(stored));
       } catch {
+        localStorage.removeItem(LAYOUT_STORAGE_KEY);
         setSavedLayouts(DEFAULT_LAYOUTS);
       }
     }
