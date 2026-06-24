@@ -72,7 +72,7 @@
   --desk-grid: #e1d7c4;
   --paper: #fffdf7;
   --paper-2: #f7f3ea;
-  --ink: #2b2722;
+  --ink: #1f2331;
   --ink-soft: #64748b;
   --ink-faint: #a69e8f;
   --line: #e1d7c4;
@@ -514,6 +514,7 @@
 .swipe {
   position: relative;
   display: inline-block;
+  isolation: isolate;
 }
 
 .swipe::after {
