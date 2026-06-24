@@ -230,6 +230,11 @@
     repeating-linear-gradient(var(--paper) 0, var(--paper) 47px, var(--rule) 47px, var(--rule) 48px);
 }
 
+.task-paper {
+  --rule: #cdd7ec;
+  --margin: #e0a3a3;
+}
+
 .sticky {
   position: relative;
   background: var(--note-yellow);
