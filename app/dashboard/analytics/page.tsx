@@ -10,8 +10,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
+  Tooltip,  
   PieChart,
   Pie,
   Legend,
@@ -62,7 +61,7 @@ interface AnalyticsData {
 const RANGES: { key: RangeKey; label: string; sub: string }[] = [
   { key: "7d", label: "Week", sub: "this week" },
   { key: "30d", label: "Month", sub: "this month" },
-  { key: "90d", label: "Year", sub: "this year" },
+  { key: "90d", label: "Term", sub: "this term" },
 ];
 
 const DEFAULT_LAYOUTS = {
@@ -287,6 +286,46 @@ function WidgetCard({
   );
 }
 
+function ChartBox({
+  children,
+}: {
+  children: (size: { width: number; height: number }) => React.ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    if (!ref.current) return;
+
+    const observer = new ResizeObserver(([entry]) => {
+      const width = Math.floor(entry.contentRect.width);
+      const height = Math.floor(entry.contentRect.height);
+
+      if (width > 0 && height > 0) {
+        setSize({ width, height });
+      }
+    });
+
+    observer.observe(ref.current);
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        flex: 1,
+        minHeight: 160,
+        minWidth: 0,
+        width: "100%",
+      }}
+    >
+      {size.width > 0 && size.height > 0 ? children(size) : null}
+    </div>
+  );
+}
+
 function formatFocusTime(minutes: number) {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
@@ -504,28 +543,28 @@ export default function AnalyticsPage() {
         }}
       >
         <StickyStat
-          bg="#F7E589"
+          bg="#65CDDE"
           label="Focus time"
           value={formatFocusTime(totalFocusMinutes)}
           sub={`estimated ${periodSub}`}
         />
 
         <StickyStat
-          bg="#F7D9A8"
+          bg="#FFE66D"
           label="Streak"
           value={`${Math.min(data.completed, 12)} days`}
           sub="keep it going"
         />
 
         <StickyStat
-          bg="#CFEFC8"
+          bg="#A7F18C"
           label="Tasks active"
           value={data.active}
           sub={`${data.dueSoon} due soon · ${data.total} total`}
         />
 
         <StickyStat
-          bg="#DFAAAA"
+          bg="#FF8484"
           label="Tasks overdue"
           value={data.overdue}
           sub="need attention"
@@ -560,13 +599,19 @@ export default function AnalyticsPage() {
             <WidgetCard>
               <CardHead icon={<BarChart3 size={17} />} title="Focus minutes per day" />
 
-              <div style={{ height: 320, minHeight: 320 }}>
-                  <ResponsiveContainer width="100%" height={320}>
+              <ChartBox>
+                {({ width, height }) => (
                   <BarChart
+                    width={width}
+                    height={height}
                     data={focusTrend}
                     margin={{ top: 8, right: 8, left: -18, bottom: 0 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="var(--line)"
+                      vertical={false}
+                    />
 
                     <XAxis
                       dataKey="date"
@@ -583,7 +628,10 @@ export default function AnalyticsPage() {
                       tickLine={false}
                     />
 
-                    <Tooltip content={<ChartTooltip />} cursor={{ fill: "var(--paper-2)" }} />
+                    <Tooltip
+                      content={<ChartTooltip />}
+                      cursor={{ fill: "var(--paper-2)" }}
+                    />
 
                     <Bar
                       dataKey="minutes"
@@ -594,44 +642,20 @@ export default function AnalyticsPage() {
                       {focusTrend.map((d, i) => (
                         <Cell
                           key={i}
-                          fill={d.minutes === maxFocus && maxFocus > 0 ? COLORS.best : COLORS.focus}
+                          fill={
+                            d.minutes === maxFocus && maxFocus > 0
+                              ? COLORS.best
+                              : COLORS.focus
+                          }
                         />
                       ))}
                     </Bar>
                   </BarChart>
-                </ResponsiveContainer>
-              </div>
+                )}
+              </ChartBox>
 
               <div className="flex items-center gap-4" style={{ marginTop: 12 }}>
-                <span
-                  className="flex items-center gap-1.5"
-                  style={{ fontSize: 13, color: "var(--ink-soft)" }}
-                >
-                  <span
-                    style={{
-                      width: 12,
-                      height: 12,
-                      borderRadius: 4,
-                      background: COLORS.focus,
-                    }}
-                  />
-                  Focus
-                </span>
-
-                <span
-                  className="flex items-center gap-1.5"
-                  style={{ fontSize: 13, color: "var(--ink-soft)" }}
-                >
-                  <span
-                    style={{
-                      width: 12,
-                      height: 12,
-                      borderRadius: 4,
-                      background: COLORS.best,
-                    }}
-                  />
-                  Best day
-                </span>
+                ...
               </div>
             </WidgetCard>
           </div>
@@ -729,9 +753,9 @@ export default function AnalyticsPage() {
             <WidgetCard>
               <CardHead icon={<PieChartIcon size={17} />} title="Task status" />
 
-              <div style={{ height: 300, minHeight: 300 }}>
-                  <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
+              <ChartBox>
+                {({ width, height }) => (
+                  <PieChart width={width} height={height}>
                     <Pie
                       data={statusData}
                       dataKey="value"
@@ -755,8 +779,8 @@ export default function AnalyticsPage() {
                       }}
                     />
                   </PieChart>
-                </ResponsiveContainer>
-              </div>
+                )}
+              </ChartBox>
             </WidgetCard>
           </div>
 
@@ -764,13 +788,19 @@ export default function AnalyticsPage() {
             <WidgetCard>
               <CardHead icon={<BarChart3 size={17} />} title="Task by priority" />
 
-              <div style={{ height: 260, minHeight: 260 }}>
-                <ResponsiveContainer width="100%" height={260}>
+              <ChartBox>
+                {({ width, height }) => (
                   <BarChart
+                    width={width}
+                    height={height}
                     data={data.byPriority}
                     margin={{ top: 8, right: 8, left: -18, bottom: 0 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="var(--line)"
+                      vertical={false}
+                    />
 
                     <XAxis
                       dataKey="priority"
@@ -786,7 +816,10 @@ export default function AnalyticsPage() {
                       tickLine={false}
                     />
 
-                    <Tooltip content={<ChartTooltip />} cursor={{ fill: "var(--paper-2)" }} />
+                    <Tooltip
+                      content={<ChartTooltip />}
+                      cursor={{ fill: "var(--paper-2)" }}
+                    />
 
                     <Legend
                       wrapperStyle={{
@@ -811,8 +844,8 @@ export default function AnalyticsPage() {
                       radius={[6, 6, 0, 0]}
                     />
                   </BarChart>
-                </ResponsiveContainer>
-              </div>
+                )}
+              </ChartBox>
             </WidgetCard>
           </div>
 
