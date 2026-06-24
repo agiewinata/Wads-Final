@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DateTimePicker } from "@/app/dashboard/calendar/_components/DateTimePicker";
+import { Plus, ArrowUp, ArrowDown, Trash2, X, Check } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -44,47 +45,33 @@ function getStatus(t: Task): TaskStatus {
 function formatDate(iso: string | null) {
   if (!iso) return "";
   const d = new Date(iso);
-  return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getFullYear()).slice(2)}`;
+  return d.toLocaleDateString("en-US", { day: "numeric", month: "short" });
 }
 
-// ─── Config ───────────────────────────────────────────────────────────────────
+const LINE_H   = 48;   // px per ruled line (matches .ruled background)
+const MIN_ROWS = 12;
 
-const LINE_H   = 40;   // px per ruled line
-const MARGIN_X = 72;   // left margin line position
-const MIN_ROWS = 20;   // minimum blank rows to fill the paper
-
-// Built-in categories
-const BUILT_IN: { value: string; label: string; bg: string }[] = [
-  { value: "ASSIGNMENT", label: "Assignment", bg: "#e8e8e8" },
-  { value: "PROJECT",    label: "Project",    bg: "#d0d0d0" },
-  { value: "EXAM",       label: "Exam",       bg: "#b8b8b8" },
+const BUILT_IN: { value: string; label: string }[] = [
+  { value: "ASSIGNMENT", label: "Assignment" },
+  { value: "PROJECT",    label: "Project" },
+  { value: "EXAM",       label: "Exam" },
 ];
 
-function getCategoryBg(value: string) {
-  return BUILT_IN.find(c => c.value === value)?.bg ?? "#d4d4d4";
-}
 function getCategoryLabel(value: string) {
   return BUILT_IN.find(c => c.value === value)?.label ?? value;
 }
+function pillClass(value: string) {
+  if (value === "ASSIGNMENT") return "pill pill-assignment";
+  if (value === "PROJECT")    return "pill pill-project";
+  if (value === "EXAM")       return "pill pill-exam";
+  return "pill";
+}
 
 const STATUS_TABS: { value: TaskStatus; label: string }[] = [
-  { value: "CURRENT",  label: "CURRENT TASK" },
-  { value: "PAST",     label: "PAST TASK" },
-  { value: "OVERDUE",  label: "OVERDUE"  },
+  { value: "CURRENT",  label: "Current" },
+  { value: "PAST",     label: "Past" },
+  { value: "OVERDUE",  label: "Overdue" },
 ];
-
-// ─── B&W ruled paper background ───────────────────────────────────────────────
-
-const PAPER_STYLE: React.CSSProperties = {
-  backgroundColor: "#ffffff",
-  backgroundImage: [
-    // Dark grey margin line
-    `linear-gradient(90deg, transparent ${MARGIN_X - 1}px, #aaa ${MARGIN_X - 1}px, #aaa ${MARGIN_X}px, transparent ${MARGIN_X}px)`,
-    // Light grey ruled lines
-    `repeating-linear-gradient(transparent 0px, transparent ${LINE_H - 1}px, #e2e2e2 ${LINE_H - 1}px, #e2e2e2 ${LINE_H}px)`,
-  ].join(", "),
-  backgroundAttachment: "local",
-};
 
 function emptyForm() {
   return { title: "", details: "", priority: null as number | null, date: "", category: "" };
@@ -114,7 +101,6 @@ export default function TasksPage() {
   const [burnoutOpen,    setBurnoutOpen]    = useState(false);
   const [burnoutMsg,     setBurnoutMsg]     = useState("");
   const [burnoutLoading, setBurnoutLoading] = useState(false);
-  const [isMobile,       setIsMobile]       = useState(false);
 
   const fetchTasks = useCallback(async () => {
     setLoading(true);
@@ -130,13 +116,6 @@ export default function TasksPage() {
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchTasks(); fetchCategories(); }, [fetchTasks, fetchCategories]);
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 640);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
 
   const visible = tasks
     .filter(t => getStatus(t) === activeStatus)
@@ -169,6 +148,11 @@ export default function TasksPage() {
         ? (va < vb ? -1 : va > vb ? 1 : 0)
         : (va > vb ? -1 : va < vb ? 1 : 0);
     });
+
+  // counts for subtitle
+  const activeCount  = tasks.filter(t => getStatus(t) === "CURRENT").length;
+  const overdueCount = tasks.filter(t => getStatus(t) === "OVERDUE").length;
+  const doneCount    = tasks.filter(t => t.completed).length;
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -257,11 +241,8 @@ export default function TasksPage() {
   }
 
   function handleDeleteButton() {
-    if (!deleteMode) {
-      setDeleteMode(true);
-    } else {
-      deleteSelected();
-    }
+    if (!deleteMode) setDeleteMode(true);
+    else deleteSelected();
   }
 
   async function addCategory() {
@@ -294,291 +275,190 @@ export default function TasksPage() {
   }
 
   const rows = Math.max(visible.length, MIN_ROWS);
+  const activeCustom = userCategories.find(c => c.name === activeCategory);
 
-  // ── Shared button style ────────────────────────────────────────────────────
-
-  const actionBtn = (disabled = false): React.CSSProperties => ({
-    width: 36, height: 36,
-    display: "flex", alignItems: "center", justifyContent: "center",
-    fontWeight: 700, fontSize: 18,
-    background: "transparent",
-    color: "#111",
-    border: "2px solid #333",
-    borderRadius: "2px 4px 2px 4px / 4px 2px 4px 2px",
-    cursor: disabled ? "default" : "pointer",
-    opacity: disabled ? 0.25 : 1,
-    flexShrink: 0,
+  // shared small icon-button on the toolbar
+  const iconBtn = (active = false): React.CSSProperties => ({
+    width: 36, height: 36, display: "grid", placeItems: "center",
+    borderRadius: 10, cursor: "pointer", flexShrink: 0,
+    border: "1px solid " + (active ? "var(--accent)" : "var(--line-strong)"),
+    background: active ? "var(--accent)" : "var(--paper)",
+    color: active ? "#fff" : "var(--ink-soft)",
   });
+
+  const selectStyle: React.CSSProperties = {
+    height: 36, fontSize: 13, fontWeight: 600, color: "var(--ink)",
+    background: "var(--paper)", border: "1px solid var(--line-strong)", borderRadius: 10,
+    padding: "0 30px 0 12px", cursor: "pointer", appearance: "none",
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23a69e8f'/%3E%3C/svg%3E")`,
+    backgroundRepeat: "no-repeat", backgroundPosition: "right 11px center",
+  };
 
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="w-full flex flex-col gap-4">
+    <div className="w-full flex flex-col gap-5">
 
-      {/* ── Title — outside the paper ─────────────────────────────────── */}
-      <h1
-        style={{
-          fontSize: 32,
-          fontWeight: 800,
-          letterSpacing: "-0.03em",
-          color: "#111",
-          fontStyle: "italic",
-          lineHeight: 1,
-          paddingLeft: 2,
-        }}
-      >
-        to-do list
-      </h1>
+      {/* header */}
+      <div className="flex items-end justify-between flex-wrap" style={{ gap: 16 }}>
+        <div>
+          <h1 className="swipe" style={{ fontFamily: "var(--font-heading)", fontSize: 34, fontWeight: 600, letterSpacing: "-0.02em", color: "var(--ink)", lineHeight: 1 }}>
+            To-do list
+          </h1>
+          <p style={{ fontSize: 13.5, color: "var(--ink-soft)", marginTop: 10 }}>
+            {activeCount} active · {overdueCount} overdue · {doneCount} done
+          </p>
+        </div>
+        <button onClick={openAdd} disabled={burnoutLoading} className="btn-ink" style={{ opacity: burnoutLoading ? 0.6 : 1 }}>
+          <Plus size={17} /> {burnoutLoading ? "Checking…" : "New task"}
+        </button>
+      </div>
 
-      {/* ── Paper + stickers row ──────────────────────────────────────── */}
-      <div className={isMobile ? "flex flex-col gap-3" : "flex items-start gap-0"}>
+      {/* notebook */}
+      <div style={{ background: "var(--paper)", border: "1px solid var(--line-strong)", borderRadius: 14, boxShadow: "var(--shadow)", overflow: "hidden" }}>
 
-      {/* ── Ruled paper ─────────────────────────────────────────────────── */}
-      <div
-        className="flex-1 min-w-0 flex flex-col"
-        style={{
-          border: "3px solid #111",
-          borderRadius: "6px 2px 2px 6px",
-          boxShadow: "5px 7px 0 rgba(0,0,0,0.13)",
-          overflow: "hidden",
-        }}
-      >
-        {/* ── Controls row (1.5 lines tall) ── */}
-        <div
-          style={{
-            background: "#ffffff",
-            minHeight: LINE_H * 1.5,
-            flexShrink: 0,
-            borderBottom: "2.5px solid #333",
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "center",
-            paddingLeft: 10,
-            paddingRight: 16,
-            paddingTop: 6,
-            paddingBottom: 6,
-            gap: 10,
-          }}
-        >
-          {/* Status tabs */}
-          <div style={{ display: "flex" }}>
-            {STATUS_TABS.map((tab, i) => {
+        {/* toolbar */}
+        <div className="flex items-center flex-wrap" style={{ gap: 10, padding: "12px 16px", borderBottom: "1px solid var(--line)" }}>
+          {/* status segmented control */}
+          <div style={{ display: "inline-flex", background: "var(--paper-2)", border: "1px solid var(--line)", borderRadius: 999, padding: 3 }}>
+            {STATUS_TABS.map(tab => {
               const active = activeStatus === tab.value;
               return (
-                <button
-                  key={tab.value}
+                <button key={tab.value}
                   onClick={() => { setActiveStatus(tab.value); setSelected(new Set()); setDeleteMode(false); }}
                   style={{
-                    padding: "5px 16px",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    letterSpacing: "0.08em",
-                    background: active ? "#111" : "transparent",
-                    color: active ? "#fff" : "#999",
-                    border: "2px solid #555",
-                    borderRight: i < STATUS_TABS.length - 1 ? "none" : "2px solid #555",
-                    borderRadius: i === 0 ? "3px 0 0 3px" : i === STATUS_TABS.length - 1 ? "0 3px 3px 0" : "0",
-                    cursor: "pointer",
-                    transition: "all 0.1s",
-                  }}
-                >
-                  {isMobile ? tab.value : tab.label}
+                    fontSize: 12.5, fontWeight: 600, border: "none", cursor: "pointer",
+                    padding: "6px 15px", borderRadius: 999,
+                    background: active ? "var(--paper)" : "transparent",
+                    color: active ? "var(--ink)" : "var(--ink-soft)",
+                    boxShadow: active ? "var(--shadow-sm)" : "none",
+                  }}>
+                  {tab.label}
                 </button>
               );
             })}
           </div>
 
-          {/* Action buttons — pushed to the right */}
-          <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
-            <select
-              value={sortField}
-              onChange={e => setSortField(e.target.value as SortField)}
-              title="Sort by"
-              style={{
-                height: 36,
-                padding: "0 8px",
-                fontWeight: 700,
-                fontSize: 13,
-                fontFamily: "inherit",
-                background: "transparent",
-                color: "#111",
-                border: "2px solid #333",
-                borderRadius: "2px 4px 2px 4px / 4px 2px 4px 2px",
-                cursor: "pointer",
-                flexShrink: 0,
-                appearance: "none",
-                WebkitAppearance: "none",
-                paddingRight: 24,
-                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23333'/%3E%3C/svg%3E")`,
-                backgroundRepeat: "no-repeat",
-                backgroundPosition: "right 6px center",
-              }}
-            >
+          {/* right side: category dropdown + sort + dir + delete */}
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            {/* category filter dropdown */}
+            {addingCat ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <input autoFocus value={newCatName}
+                  onChange={e => { setNewCatName(e.target.value); setCatError(""); }}
+                  onKeyDown={e => { if (e.key === "Enter") addCategory(); if (e.key === "Escape") { setAddingCat(false); setNewCatName(""); setCatError(""); } }}
+                  placeholder="category name…" maxLength={32}
+                  style={{ width: 140, height: 36, fontSize: 13, padding: "0 10px", outline: "none",
+                    border: `1px solid ${catError ? "var(--bad)" : "var(--line-strong)"}`, borderRadius: 10, background: "var(--paper)", color: "var(--ink)" }} />
+                <button onClick={addCategory} className="btn-ink" style={{ height: 36, padding: "0 12px" }}>Add</button>
+                <button onClick={() => { setAddingCat(false); setNewCatName(""); setCatError(""); }} style={iconBtn()} title="Cancel"><X size={16} /></button>
+                {catError && <span style={{ fontSize: 11, color: "var(--bad)" }}>{catError}</span>}
+              </div>
+            ) : (
+              <>
+                <select value={activeCategory}
+                  onChange={e => { setActiveCategory(e.target.value); setSelected(new Set()); setDeleteMode(false); }}
+                  title="Filter by category" style={selectStyle}>
+                  <option value="ALL">All categories</option>
+                  {BUILT_IN.filter(c => !hiddenCats.has(c.value)).map(c => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
+                  ))}
+                  {userCategories.map(c => (
+                    <option key={c.id} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
+                {activeCustom ? (
+                  <button onClick={() => deleteCategory(activeCustom.id, activeCustom.name)} style={iconBtn()} title="Delete this category"><Trash2 size={16} /></button>
+                ) : (
+                  <button onClick={() => setAddingCat(true)} style={iconBtn()} title="Add category"><Plus size={17} /></button>
+                )}
+                <span style={{ width: 1, height: 22, background: "var(--line)", margin: "0 2px" }} />
+              </>
+            )}
+
+            {/* sort */}
+            <select value={sortField} onChange={e => setSortField(e.target.value as SortField)} title="Sort by" style={selectStyle}>
               <option value="createdAt">Created</option>
-              <option value="dueDate">Due Date</option>
+              <option value="dueDate">Due date</option>
               <option value="title">Title</option>
               <option value="priority">Priority</option>
             </select>
-            <button
-              onClick={toggleSortDir}
-              title={sortDir === "asc" ? "Ascending — click for descending" : "Descending — click for ascending"}
-              style={actionBtn()}
-            >
-              {sortDir === "asc" ? "↑" : "↓"}
+            <button onClick={toggleSortDir} style={iconBtn()} title={sortDir === "asc" ? "Ascending" : "Descending"}>
+              {sortDir === "asc" ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
             </button>
-            <button
-              onClick={openAdd}
-              disabled={burnoutLoading}
-              title="Add task"
-              style={{ ...actionBtn(burnoutLoading), fontSize: burnoutLoading ? 12 : 18 }}
-            >
-              {burnoutLoading ? "…" : "+"}
-            </button>
-            <button
-              onClick={handleDeleteButton}
-              title={deleteMode ? "Confirm delete" : "Delete tasks"}
-              style={{
-                ...actionBtn(),
-                fontSize: 22,
-                background: deleteMode ? "#111" : "transparent",
-                color: deleteMode ? "#fff" : "#111",
-              }}
-            >
-              −
+            <button onClick={handleDeleteButton} style={iconBtn(deleteMode)} title={deleteMode ? "Confirm delete" : "Delete tasks"}>
+              {deleteMode ? <Check size={16} /> : <Trash2 size={16} />}
             </button>
           </div>
         </div>
 
-        {/* ── Scrollable task rows ── */}
-        <div
-          className="overflow-y-auto"
-          style={{
-            ...PAPER_STYLE,
-            maxHeight: "calc(100vh - 160px)",
-            minHeight: MIN_ROWS * LINE_H,
-          }}
-        >
+        {/* ruled task rows */}
+        <div className="ruled overflow-y-auto" style={{ maxHeight: "calc(100vh - 240px)", minHeight: MIN_ROWS * LINE_H }}>
           {loading ? (
-            <div
-              className="flex items-center justify-center text-sm"
-              style={{ height: MIN_ROWS * LINE_H, color: "#aaa" }}
-            >
+            <div className="flex items-center justify-center" style={{ height: MIN_ROWS * LINE_H, color: "var(--ink-faint)", fontSize: 13 }}>
               Loading…
             </div>
           ) : (
             <ul>
               {Array.from({ length: rows }).map((_, i) => {
-                const task     = visible[i];
-                const showHole = i % 5 === 1;
-
+                const task = visible[i];
                 return (
-                  <li
-                    key={task?.id ?? `blank-${i}`}
-                    style={{
-                      height: LINE_H,
-                      paddingLeft:  MARGIN_X + 12,
-                      paddingRight: 16,
-                      position: "relative",
-                    }}
-                    className="flex items-center gap-2 group"
-                  >
-                    {/* Hole punch */}
-                    {showHole && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          left: 18, top: "50%", transform: "translateY(-50%)",
-                          width: 22, height: 22, borderRadius: "50%",
-                          background: "#ebebeb", border: "1.5px solid #c4c4c4",
-                          boxShadow: "inset 0 1px 3px rgba(0,0,0,0.2), 0 1px 0 rgba(255,255,255,0.7)",
-                          pointerEvents: "none",
-                        }}
-                      />
-                    )}
-
+                  <li key={task?.id ?? `blank-${i}`}
+                    style={{ height: LINE_H, paddingLeft: 70, paddingRight: 18, position: "relative" }}
+                    className="flex items-center gap-3 group">
                     {task ? (
                       <>
-                        {/* Bullet / checkbox */}
+                        {/* checkbox: select in deleteMode, else complete toggle */}
                         {deleteMode ? (
-                          <input
-                            type="checkbox"
-                            checked={selected.has(task.id)}
-                            onChange={() => toggleSelect(task.id)}
-                            className="shrink-0 cursor-pointer accent-zinc-800"
-                            style={{ width: 13, height: 13 }}
-                          />
+                          <button onClick={() => toggleSelect(task.id)} className="grid place-items-center shrink-0"
+                            style={{ width: 18, height: 18, borderRadius: 6, cursor: "pointer",
+                              border: "1.6px solid " + (selected.has(task.id) ? "var(--bad)" : "var(--line-strong)"),
+                              background: selected.has(task.id) ? "var(--bad)" : "transparent",
+                              color: "#fff" }}>
+                            {selected.has(task.id) && <Check size={12} />}
+                          </button>
                         ) : (
-                          <span
-                            className="shrink-0"
-                            style={{ width: 13, fontSize: 18, color: "#bbb", lineHeight: 1, userSelect: "none", textAlign: "center" }}
-                          >
-                            •
-                          </span>
+                          <button onClick={() => toggleComplete(task)} className="grid place-items-center shrink-0"
+                            title={task.completed ? "Mark incomplete" : "Mark complete"}
+                            style={{ width: 18, height: 18, borderRadius: 6, cursor: "pointer",
+                              border: "1.6px solid " + (task.completed ? "var(--accent)" : "var(--line-strong)"),
+                              background: task.completed ? "var(--accent)" : "transparent",
+                              color: "#fff" }}>
+                            {task.completed && <Check size={12} />}
+                          </button>
                         )}
 
-                        {/* Task content */}
-                        <button
-                          onClick={() => openEdit(task)}
-                          className="flex-1 min-w-0 flex items-center gap-3 text-left h-full"
-                        >
-                          <span
-                            className="text-sm font-medium text-zinc-800 truncate"
-                            style={task.completed
-                              ? { textDecoration: "line-through", opacity: 0.35 }
-                              : {}}
-                          >
+                        {/* title (click to edit) */}
+                        <button onClick={() => openEdit(task)} className="flex-1 min-w-0 flex items-center gap-3 text-left h-full">
+                          <span style={{ fontSize: 14.5, fontWeight: 500, color: task.completed ? "var(--ink-faint)" : "var(--ink)",
+                            textDecoration: task.completed ? "line-through" : "none",
+                            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                             {task.title}
                           </span>
 
                           {task.priority !== null && (
-                            <span className="flex gap-0.5 items-center shrink-0">
+                            <span className="flex items-center shrink-0" style={{ gap: 3 }}>
                               {[1,2,3,4,5].map(p => (
-                                <span key={p} style={{
-                                  width: 6, height: 6, borderRadius: "50%", display: "inline-block",
-                                  background: task.priority === p ? "#444" : "transparent",
-                                  border: "1.5px solid #aaa",
-                                }} />
+                                <span key={p} style={{ width: 5, height: 14, borderRadius: 2,
+                                  background: p <= (task.priority ?? 0) ? "var(--accent)" : "var(--line-strong)" }} />
                               ))}
                             </span>
                           )}
 
-                          <span className="ml-auto shrink-0 flex items-center gap-2">
-                            {task.dueDate && (
-                              <span className="text-xs font-mono tabular-nums" style={{ color: "#777" }}>
-                                {formatDate(task.dueDate)}
-                              </span>
-                            )}
+                          <span className="ml-auto shrink-0 flex items-center gap-2.5">
                             {task.category && (
-                              <span
-                                style={{
-                                  background: getCategoryBg(task.category),
-                                  border: "1.5px solid #555",
-                                  borderRadius: "2px 4px 2px 4px",
-                                  fontSize: 10, fontWeight: 700,
-                                  padding: "0 6px", lineHeight: "17px",
-                                  display: "inline-block", color: "#222",
-                                }}
-                              >
+                              <span className={pillClass(task.category)}
+                                style={pillClass(task.category) === "pill" ? { background: "var(--accent-soft)", color: "var(--accent-text)" } : undefined}>
                                 {getCategoryLabel(task.category)}
                               </span>
                             )}
+                            {task.dueDate && (
+                              <span style={{ fontSize: 12, fontWeight: 500, fontFamily: "var(--font-mono)",
+                                color: getStatus(task) === "OVERDUE" ? "var(--bad)" : "var(--ink-soft)" }}>
+                                {formatDate(task.dueDate)}
+                              </span>
+                            )}
                           </span>
-                        </button>
-
-                        {/* Complete toggle on hover */}
-                        <button
-                          onClick={() => toggleComplete(task)}
-                          title={task.completed ? "Mark incomplete" : "Mark complete"}
-                          className="shrink-0 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                          style={{
-                            width: 20, height: 20,
-                            border: "1.5px solid #333",
-                            borderRadius: "2px",
-                            background: task.completed ? "#111" : "transparent",
-                            color:      task.completed ? "#fff" : "#111",
-                          }}
-                        >
-                          ✓
                         </button>
                       </>
                     ) : null}
@@ -590,359 +470,109 @@ export default function TasksPage() {
         </div>
       </div>
 
-      {/* ── Category stickers – right strip (desktop) / horizontal scroll (mobile) ── */}
-      <div
-        style={isMobile ? {
-          display: "flex", flexDirection: "row", gap: 6,
-          overflowX: "auto", flexWrap: "nowrap",
-          paddingTop: 4, paddingBottom: 4, alignItems: "center",
-        } : {
-          display: "flex", flexDirection: "column", gap: 6,
-          marginLeft: -3, paddingTop: LINE_H * 1.5 + 12,
-          position: "relative", zIndex: 10,
-        }}
-      >
-        {/* Add category button */}
-        {addingCat ? (
-          <div style={{ display: "flex", flexDirection: isMobile ? "row" : "column", gap: 4, paddingRight: isMobile ? 0 : 4, flexShrink: 0 }}>
-            <input
-              autoFocus
-              value={newCatName}
-              onChange={e => { setNewCatName(e.target.value); setCatError(""); }}
-              onKeyDown={e => { if (e.key === "Enter") addCategory(); if (e.key === "Escape") { setAddingCat(false); setNewCatName(""); setCatError(""); } }}
-              placeholder="name…"
-              maxLength={32}
-              style={{
-                width: 100, fontSize: 11, padding: "4px 8px",
-                border: `1.5px solid ${catError ? "#e00" : "#333"}`,
-                ...(isMobile ? {} : { borderLeft: "none" }),
-                borderRadius: isMobile ? "5px" : "0 5px 5px 0",
-                outline: "none", background: "#fff",
-              }}
-            />
-            {catError && <span style={{ fontSize: 9, color: "#e00", paddingLeft: 2 }}>{catError}</span>}
-            <button
-              onClick={addCategory}
-              style={{
-                fontSize: 10, fontWeight: 700, padding: "3px 8px",
-                background: "#111", color: "#fff",
-                border: "1.5px solid #111",
-                ...(isMobile ? {} : { borderLeft: "none" }),
-                borderRadius: isMobile ? "4px" : "0 4px 4px 0",
-                cursor: "pointer",
-              }}
-            >OK</button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setAddingCat(true)}
-            title="Add category"
-            style={{
-              background: "#f4f4f4", color: "#555",
-              border: "1.5px dashed #999",
-              ...(isMobile ? {} : { borderLeft: "none" }),
-              borderRadius: isMobile ? "4px" : "0 5px 5px 0",
-              padding: "6px 14px 6px 11px",
-              fontSize: 11, fontWeight: 700,
-              cursor: "pointer", whiteSpace: "nowrap",
-              opacity: 0.7, flexShrink: 0,
-            }}
-          >
-            + category
-          </button>
-        )}
-
-        {[{ value: "ALL", label: "All", bg: "#f4f4f4" }, ...BUILT_IN, ...userCategories.map(c => ({ value: c.name, label: c.name, bg: "#d4d4d4", id: c.id }))]
-          .filter(cat => !hiddenCats.has(cat.value))
-          .map((cat) => {
-            const active = activeCategory === cat.value;
-            const isCustom = !["ALL", ...BUILT_IN.map(b => b.value)].includes(cat.value);
-            return (
-              <div key={cat.value} style={{ position: "relative", display: "flex", alignItems: "center", flexShrink: 0 }} className="group">
-                <button
-                  onClick={() => { setActiveCategory(cat.value); setSelected(new Set()); setDeleteMode(false); }}
-                  style={{
-                    background: active ? "#111" : cat.bg,
-                    color: active ? "#fff" : "#333",
-                    border: "1.5px solid #333",
-                    ...(isMobile ? {} : { borderLeft: "none" }),
-                    borderRadius: isMobile ? "4px 6px 4px 6px" : "0 5px 5px 0",
-                    padding: "6px 24px 6px 11px",
-                    fontSize: 11, fontWeight: 700,
-                    cursor: "pointer", whiteSpace: "nowrap", textAlign: "left",
-                    opacity: active ? 1 : 0.6,
-                    transform: (!isMobile && active) ? "translateX(4px)" : "none",
-                    boxShadow: active ? "3px 3px 0 rgba(0,0,0,0.18)" : "1px 1px 0 rgba(0,0,0,0.08)",
-                    transition: "all 0.12s ease",
-                  }}
-                >
-                  {cat.label}
-                </button>
-                <button
-                  onClick={() => {
-                    if (isCustom) deleteCategory((cat as unknown as { id: string }).id, cat.value);
-                    else { if (activeCategory === cat.value) setActiveCategory("ALL"); setHiddenCats(p => new Set([...p, cat.value])); }
-                  }}
-                  title="Remove"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{
-                    position: "absolute", right: 6,
-                    background: "none", border: "none",
-                    cursor: "pointer", fontSize: 12, color: active ? "#aaa" : "#888",
-                    lineHeight: 1, padding: 0, fontWeight: 900,
-                  }}
-                >×</button>
-              </div>
-            );
-          })}
-      </div>
-
-      </div>{/* end paper+stickers row */}
-
-      {/* ── Burnout warning popup ───────────────────────────────────────── */}
+      {/* ── Burnout warning popup ──────────────────────────────────────────── */}
       {burnoutOpen && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.45)",
-            zIndex: 9000,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 24,
-          }}
-        >
-          <div
-            style={{
-              background: "#fff",
-              border: "3px solid #111",
-              borderRadius: "6px 8px 5px 7px / 7px 5px 8px 6px",
-              boxShadow: "8px 10px 0 rgba(0,0,0,0.18)",
-              maxWidth: 400,
-              width: "100%",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                borderBottom: "2px solid #e4e4e7",
-                padding: "14px 20px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <h2 style={{ fontSize: 16, fontWeight: 800, fontStyle: "italic", letterSpacing: "-0.02em", color: "#111", margin: 0 }}>
-                heads up
-              </h2>
-              <span style={{ fontSize: 11, color: "#aaa", fontStyle: "italic" }}>burnout check</span>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <div className="paper" style={{ maxWidth: 400, width: "100%", overflow: "hidden", padding: 0 }}>
+            <div style={{ borderBottom: "1px solid var(--line)", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 17, fontWeight: 600, color: "var(--ink)", margin: 0 }}>Heads up</h2>
+              <span style={{ fontSize: 11, color: "var(--ink-faint)" }}>burnout check</span>
             </div>
-
-            <div style={{ padding: "20px 22px" }}>
-              <p style={{ fontSize: 14, lineHeight: 1.75, color: "#333", margin: 0, whiteSpace: "pre-wrap" }}>
-                {burnoutMsg}
-              </p>
+            <div style={{ padding: "18px 22px" }}>
+              <p style={{ fontSize: 14, lineHeight: 1.7, color: "var(--ink-soft)", margin: 0, whiteSpace: "pre-wrap" }}>{burnoutMsg}</p>
             </div>
-
-            <div
-              style={{
-                borderTop: "2px solid #e4e4e7",
-                padding: "12px 20px",
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: 8,
-              }}
-            >
-              <button
-                onClick={() => setBurnoutOpen(false)}
-                style={{
-                  padding: "6px 16px",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  background: "transparent",
-                  color: "#555",
-                  border: "2px solid #ccc",
-                  borderRadius: "3px 5px 3px 5px / 5px 3px 5px 3px",
-                  cursor: "pointer",
-                }}
-              >
-                maybe later
-              </button>
-              <button
-                onClick={() => { setBurnoutOpen(false); doOpenAdd(); }}
-                style={{
-                  padding: "6px 16px",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  background: "#111",
-                  color: "#fff",
-                  border: "2px solid #111",
-                  borderRadius: "3px 5px 3px 5px / 5px 3px 5px 3px",
-                  cursor: "pointer",
-                }}
-              >
-                add anyway
-              </button>
+            <div style={{ borderTop: "1px solid var(--line)", padding: "12px 20px", display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <button onClick={() => setBurnoutOpen(false)} className="btn-paper">Maybe later</button>
+              <button onClick={() => { setBurnoutOpen(false); doOpenAdd(); }} className="btn-ink">Add anyway</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Task modal ───────────────────────────────────────────────────── */}
+      {/* ── Task modal ─────────────────────────────────────────────────────── */}
       <Dialog open={modalOpen} onOpenChange={open => setModalOpen(open)}>
-        <DialogContent
-          showCloseButton={false}
-          className="max-w-sm bg-white p-0 flex flex-col"
-          style={{
-            border: "3px solid #111",
-            borderRadius: "6px 8px 5px 7px / 7px 5px 8px 6px",
-            boxShadow: "6px 8px 0 rgba(0,0,0,0.18)",
-            maxHeight: "90vh",
-          }}
-        >
-          {/* CANCEL / SAVE */}
-          <DialogHeader
-            className="flex flex-row items-center justify-end gap-2 px-5 py-3"
-            style={{ borderBottom: "2px solid #e4e4e7" }}
-          >
-            <DialogTitle className="sr-only">
-              {editing ? "Edit Task" : "Add Task"}
+        <DialogContent showCloseButton={false} className="max-w-sm p-0 flex flex-col"
+          style={{ background: "var(--paper)", border: "1px solid var(--line-strong)", borderRadius: 16, boxShadow: "var(--shadow-lg)", maxHeight: "90vh" }}>
+          <DialogHeader className="flex flex-row items-center justify-between gap-2 px-5 py-3" style={{ borderBottom: "1px solid var(--line)" }}>
+            <DialogTitle style={{ fontFamily: "var(--font-heading)", fontSize: 17, fontWeight: 600, color: "var(--ink)" }}>
+              {editing ? "Edit task" : "New task"}
             </DialogTitle>
-            <button
-              onClick={() => setModalOpen(false)}
-              className="px-4 py-1 text-sm font-bold hover:bg-zinc-100 transition-colors"
-              style={{ border: "2px solid #111", borderRadius: "3px 5px 3px 5px / 5px 3px 5px 3px" }}
-            >
-              CANCEL
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="px-4 py-1 text-sm font-bold disabled:opacity-50"
-              style={{
-                background: "#111", color: "#fff",
-                border: "2px solid #111",
-                borderRadius: "3px 5px 3px 5px / 5px 3px 5px 3px",
-              }}
-            >
-              {saving ? "Saving…" : "SAVE"}
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setModalOpen(false)} className="btn-paper" style={{ padding: "7px 14px", fontSize: 13 }}>Cancel</button>
+              <button onClick={handleSave} disabled={saving} className="btn-ink" style={{ padding: "7px 14px", fontSize: 13, opacity: saving ? 0.6 : 1 }}>
+                {saving ? "Saving…" : "Save"}
+              </button>
+            </div>
           </DialogHeader>
 
           <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
-            {formError && (
-              <p className="text-sm font-medium" style={{ color: "#555" }}>{formError}</p>
-            )}
+            {formError && <p className="text-sm font-medium" style={{ color: "var(--bad)" }}>{formError}</p>}
 
-            <div className="space-y-1">
-              <Label className="text-sm font-semibold text-zinc-700">Title <span style={{ color: "#e00" }}>*</span></Label>
-              <Input
-                value={form.title}
-                onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                placeholder="Task title…"
-                className="bg-transparent border-0 border-b-2 border-zinc-800 rounded-none px-0 text-base focus-visible:ring-0"
-              />
+            <div className="space-y-1.5">
+              <Label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--ink-faint)" }}>
+                Title <span style={{ color: "var(--bad)" }}>*</span>
+              </Label>
+              <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Task title…"
+                className="bg-transparent rounded-none px-0 text-base focus-visible:ring-0"
+                style={{ border: "none", borderBottom: "2px solid var(--line-strong)", color: "var(--ink)" }} />
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-sm font-semibold text-zinc-700">Details:</Label>
-              <Textarea
-                value={form.details}
-                onChange={e => setForm(f => ({ ...f, details: e.target.value }))}
-                placeholder="type here…"
-                rows={3}
-                className="resize-none bg-zinc-50 text-sm focus-visible:ring-1 focus-visible:ring-zinc-400"
-                style={{ border: "2px solid #d4d4d8", borderRadius: "4px 6px 4px 6px" }}
-              />
+            <div className="space-y-1.5">
+              <Label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--ink-faint)" }}>Details</Label>
+              <Textarea value={form.details} onChange={e => setForm(f => ({ ...f, details: e.target.value }))} placeholder="type here…" rows={3}
+                className="resize-none text-sm focus-visible:ring-1"
+                style={{ border: "1px solid var(--line-strong)", borderRadius: 10, background: "var(--paper-2)", color: "var(--ink)" }} />
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-sm font-semibold text-zinc-700">Category:</Label>
-              <Select
-                value={form.category}
-                onValueChange={v => setForm(f => ({ ...f, category: v ?? "" }))}
-              >
-                <SelectTrigger
-                  className="bg-transparent"
-                  style={{ border: "2px solid #d4d4d8", borderRadius: "3px 5px 3px 5px" }}
-                >
+            <div className="space-y-1.5">
+              <Label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--ink-faint)" }}>Category</Label>
+              <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v ?? "" }))}>
+                <SelectTrigger className="bg-transparent" style={{ border: "1px solid var(--line-strong)", borderRadius: 10, color: "var(--ink)" }}>
                   <SelectValue placeholder="No category" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">No category</SelectItem>
-                  {BUILT_IN.map(cat => (
-                    <SelectItem key={cat.value} value={cat.value}>
-                      <span className="inline-block w-3 h-3 rounded-sm mr-2"
-                        style={{ background: cat.bg, border: "1px solid #555" }} />
-                      {cat.label}
-                    </SelectItem>
-                  ))}
-                  {userCategories.map(cat => (
-                    <SelectItem key={cat.id} value={cat.name}>
-                      <span className="inline-block w-3 h-3 rounded-sm mr-2"
-                        style={{ background: "#d4d4d4", border: "1px solid #555" }} />
-                      {cat.name}
-                    </SelectItem>
-                  ))}
+                  {BUILT_IN.map(cat => <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>)}
+                  {userCategories.map(cat => <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-zinc-700">Priority:</Label>
+              <Label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--ink-faint)" }}>Priority</Label>
               <div className="flex justify-between px-1">
                 {[1,2,3,4,5].map(p => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setForm(f => ({ ...f, priority: f.priority === p ? null : p }))}
-                    title={`Priority ${p}`}
-                    style={{
-                      width: 20, height: 20, borderRadius: "50%",
-                      border: "2px solid #555",
-                      background: form.priority === p ? "#111" : "transparent",
-                      cursor: "pointer",
-                      transition: "all 0.1s",
-                    }}
-                  />
+                  <button key={p} type="button"
+                    onClick={() => setForm(f => ({ ...f, priority: f.priority === p ? null : p }))} title={`Priority ${p}`}
+                    style={{ width: 22, height: 22, borderRadius: "50%", cursor: "pointer", transition: "all 0.1s",
+                      border: "2px solid " + (form.priority !== null && p <= form.priority ? "var(--accent)" : "var(--line-strong)"),
+                      background: form.priority !== null && p <= form.priority ? "var(--accent)" : "transparent" }} />
                 ))}
               </div>
-              <div className="flex justify-between px-2">
-                <span className="text-xs text-zinc-400">low</span>
-                <span className="text-xs text-zinc-400">high</span>
+              <div className="flex justify-between px-1">
+                <span style={{ fontSize: 11, color: "var(--ink-faint)" }}>low</span>
+                <span style={{ fontSize: 11, color: "var(--ink-faint)" }}>high</span>
               </div>
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-sm font-semibold text-zinc-700">Due Date:</Label>
-              <DateTimePicker
-                value={form.date}
-                onChange={iso => setForm(f => ({ ...f, date: iso }))}
-                placeholder="Select due date & time"
-              />
+            <div className="space-y-1.5">
+              <Label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--ink-faint)" }}>Due date</Label>
+              <DateTimePicker value={form.date} onChange={iso => setForm(f => ({ ...f, date: iso }))} placeholder="Select due date & time" />
             </div>
 
             {editing && (
               <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="completed"
-                  checked={editing.completed}
+                <input type="checkbox" id="completed" checked={editing.completed}
                   onChange={async () => {
                     await csrfFetch(`/api/tasks/${editing.id}`, {
-                      method: "PATCH",
-                      headers: { "Content-Type": "application/json" },
+                      method: "PATCH", headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ completed: !editing.completed }),
                     });
                     setEditing(e => e ? { ...e, completed: !e.completed } : e);
                     await fetchTasks();
                   }}
-                  className="w-4 h-4 accent-zinc-800 cursor-pointer"
-                />
-                <Label htmlFor="completed" className="text-sm text-zinc-600 cursor-pointer">
-                  Mark as completed
-                </Label>
+                  className="w-4 h-4 cursor-pointer" style={{ accentColor: "var(--accent)" }} />
+                <Label htmlFor="completed" style={{ fontSize: 13, color: "var(--ink-soft)", cursor: "pointer" }}>Mark as completed</Label>
               </div>
             )}
           </div>
