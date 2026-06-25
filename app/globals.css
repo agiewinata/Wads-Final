@@ -88,11 +88,11 @@
   --highlight: #f7d65f;
 
   --good: #3f7a4f;
-  --good-soft: #e3efe2;
+  --good-soft: #dff8e4;
   --warn: #b9791b;
   --warn-soft: #f6ead0;
   --bad: #b5453d;
-  --bad-soft: #f6e0dd;
+  --bad-soft: #fde3e3;
   --pin: #e99391;
 
   --note-yellow: #ffe27a;
@@ -150,7 +150,7 @@
   --margin: #8d5353;
 
   --accent-press: #a7b6ff;
-  --accent-soft: #28304a;
+  --accent-soft: #dce8ff;
   --accent-text: #d8dfff;
 
   --highlight: #7a642c;
