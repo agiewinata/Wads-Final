@@ -93,7 +93,7 @@ export default function TimerPage() {
               lineHeight: 1,
             }}
           >
-            Study timer
+            Study Timer
           </h1>
           <p style={{ fontSize: 13.5, color: "var(--ink-soft)", marginTop: 10 }}>
             Work in focused sessions · {completedFocusSessions} done ·{" "}
