@@ -14,6 +14,14 @@ type ScreenMode = "timer" | "settings";
 const REWIND_DURATION = 1000;
 const SNAP_DELAY = 100;
 
+const DEFAULT_TIMER_SETTINGS = {
+  focusMinutes: 25,
+  shortBreakMinutes: 5,
+  longBreakMinutes: 15,
+  longBreakInterval: 4,
+  autoStartBreaks: true,
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const TimerContext = createContext<any>(null);
 
@@ -26,29 +34,32 @@ export function TimerProvider({
 }) {
   const [screen, setScreen] = useState<ScreenMode>("timer");
 
-  const [focusMinutes, setFocusMinutes] = useState(25);
-  const [shortBreakMinutes, setShortBreakMinutes] = useState(5);
-  const [longBreakMinutes, setLongBreakMinutes] = useState(15);
-  const [longBreakInterval, setLongBreakInterval] = useState(4);
-  const [autoStartBreaks, setAutoStartBreaks] = useState(true);
+  const [focusMinutes, setFocusMinutes] = useState(DEFAULT_TIMER_SETTINGS.focusMinutes);
+  const [shortBreakMinutes, setShortBreakMinutes] = useState(DEFAULT_TIMER_SETTINGS.shortBreakMinutes);
+  const [longBreakMinutes, setLongBreakMinutes] = useState(DEFAULT_TIMER_SETTINGS.longBreakMinutes);
+  const [longBreakInterval, setLongBreakInterval] = useState(DEFAULT_TIMER_SETTINGS.longBreakInterval);
+  const [autoStartBreaks, setAutoStartBreaks] = useState(DEFAULT_TIMER_SETTINGS.autoStartBreaks);
+
   const storageKey = `timer-settings-${userId}`;
 
   const [mode, setMode] = useState<TimerMode>("focus");
   const [completedFocusSessions, setCompletedFocusSessions] = useState(0);
   const [totalFocusMinutes, setTotalFocusMinutes] = useState(0);
 
-  const [secondsLeft, setSecondsLeft] = useState(25 * 60);
+  const [secondsLeft, setSecondsLeft] = useState(DEFAULT_TIMER_SETTINGS.focusMinutes * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [isRewinding, setIsRewinding] = useState(false);
   const [rewindProgress, setRewindProgress] = useState(0);
   const [rewindStartProgress, setRewindStartProgress] = useState(0);
   const [isSnapping, setIsSnapping] = useState(false);
-
+  const [isTabRestoring, setIsTabRestoring] = useState(false);
   const [popupMessage, setPopupMessage] = useState("");
-
   const [hasLoadedSettings, setHasLoadedSettings] = useState(false);
 
   const audioContextRef = useRef<AudioContext | null>(null);
+  const isFinishingRef = useRef(false);
+  const animationRef = useRef<number | null>(null);
+  const tabRestoreTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentMinutes =
     mode === "focus"
@@ -80,32 +91,69 @@ export function TimerProvider({
       : mode === "shortBreak"
       ? "Break"
       : "Long Break";
-  
-  useEffect(() => {
-    const savedSettings = localStorage.getItem(storageKey);
 
-    if (!savedSettings) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => {
+    try {
+      const savedSettings = localStorage.getItem(storageKey);
+
+      if (!savedSettings) {
+        setHasLoadedSettings(true);
+        return;
+      }
+
+      const parsed = JSON.parse(savedSettings);
+
+      const savedFocusMinutes =
+        parsed.focusMinutes ?? DEFAULT_TIMER_SETTINGS.focusMinutes;
+      const savedShortBreakMinutes =
+        parsed.shortBreakMinutes ?? DEFAULT_TIMER_SETTINGS.shortBreakMinutes;
+      const savedLongBreakMinutes =
+        parsed.longBreakMinutes ?? DEFAULT_TIMER_SETTINGS.longBreakMinutes;
+
+      setFocusMinutes(savedFocusMinutes);
+      setShortBreakMinutes(savedShortBreakMinutes);
+      setLongBreakMinutes(savedLongBreakMinutes);
+      setLongBreakInterval(
+        parsed.longBreakInterval ?? DEFAULT_TIMER_SETTINGS.longBreakInterval
+      );
+      setAutoStartBreaks(
+        parsed.autoStartBreaks ?? DEFAULT_TIMER_SETTINGS.autoStartBreaks
+      );
+
+      setSecondsLeft(savedFocusMinutes * 60);
       setHasLoadedSettings(true);
-      return;
+    } catch {
+      localStorage.removeItem(storageKey);
+      setHasLoadedSettings(true);
+    }
+  }, [storageKey]);
+
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.visibilityState !== "visible") return;
+
+      setIsTabRestoring(true);
+
+      if (tabRestoreTimeoutRef.current) {
+        clearTimeout(tabRestoreTimeoutRef.current);
+      }
+
+      tabRestoreTimeoutRef.current = setTimeout(() => {
+        setIsTabRestoring(false);
+        tabRestoreTimeoutRef.current = null;
+      }, 180);
     }
 
-    const parsed = JSON.parse(savedSettings);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    const savedFocusMinutes = parsed.focusMinutes ?? 25;
-    const savedShortBreakMinutes = parsed.shortBreakMinutes ?? 5;
-    const savedLongBreakMinutes = parsed.longBreakMinutes ?? 15;
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
 
-    setFocusMinutes(savedFocusMinutes);
-    setShortBreakMinutes(savedShortBreakMinutes);
-    setLongBreakMinutes(savedLongBreakMinutes);
-    setLongBreakInterval(parsed.longBreakInterval ?? 4);
-    setAutoStartBreaks(parsed.autoStartBreaks ?? true);
-
-    setSecondsLeft(savedFocusMinutes * 60);
-
-    setHasLoadedSettings(true);
-  }, [storageKey]);
+      if (tabRestoreTimeoutRef.current) {
+        clearTimeout(tabRestoreTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!hasLoadedSettings) return;
@@ -117,9 +165,8 @@ export function TimerProvider({
         ? shortBreakMinutes
         : longBreakMinutes;
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSecondsLeft(minutes * 60);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, hasLoadedSettings]);
 
   useEffect(() => {
@@ -137,19 +184,26 @@ export function TimerProvider({
     }, 1000);
 
     return () => clearInterval(interval);
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRunning, mode, completedFocusSessions]);
+  }, [isRunning, mode, completedFocusSessions, focusMinutes, longBreakInterval, autoStartBreaks]);
+
+  useEffect(() => {
+    return () => {
+      if (animationRef.current !== null) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, []);
 
   function playAlarmSound() {
     const AudioContextClass =
+      window.AudioContext ||
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      window.AudioContext || (window as any).webkitAudioContext;
+      (window as any).webkitAudioContext;
 
     if (!AudioContextClass) return;
 
     const audioContext = audioContextRef.current || new AudioContextClass();
-
     audioContextRef.current = audioContext;
 
     const oscillator = audioContext.createOscillator();
@@ -193,23 +247,27 @@ export function TimerProvider({
   }
 
   function animateBackToFull(onComplete: () => void, startProgress = progress) {
+    if (animationRef.current !== null) {
+      cancelAnimationFrame(animationRef.current);
+    }
+
     setIsRunning(false);
     setRewindStartProgress(startProgress);
     setIsRewinding(true);
     setRewindProgress(0);
 
-    const duration = REWIND_DURATION;
     const startTime = performance.now();
 
     function animateRewind(currentTime: number) {
       const elapsed = currentTime - startTime;
-      const nextProgress = Math.min(elapsed / duration, 1);
+      const nextProgress = Math.min(elapsed / REWIND_DURATION, 1);
 
       setRewindProgress(nextProgress);
 
       if (nextProgress < 1) {
-        requestAnimationFrame(animateRewind);
+        animationRef.current = requestAnimationFrame(animateRewind);
       } else {
+        animationRef.current = null;
         setIsSnapping(true);
         setIsRewinding(false);
         setRewindProgress(0);
@@ -222,28 +280,36 @@ export function TimerProvider({
       }
     }
 
-    requestAnimationFrame(animateRewind);
+    animationRef.current = requestAnimationFrame(animateRewind);
   }
 
   function handleTimerFinish() {
+    if (isFinishingRef.current) return;
+    isFinishingRef.current = true;
+
     setSecondsLeft(0);
 
-    animateBackToFull(() => {
-      if (mode === "focus") {
-        const newCompletedSessions = completedFocusSessions + 1;
-        setTotalFocusMinutes((prev) => prev + focusMinutes);
-        setCompletedFocusSessions(newCompletedSessions);
+    const finishedMode = mode;
+    const finishedFocusMinutes = focusMinutes;
+    const finishedLongBreakInterval = longBreakInterval;
+    const shouldAutoStartBreaks = autoStartBreaks;
 
+    animateBackToFull(() => {
+      if (finishedMode === "focus") {
+        const newCompletedSessions = completedFocusSessions + 1;
         const shouldTakeLongBreak =
-          newCompletedSessions % longBreakInterval === 0;
+          newCompletedSessions % finishedLongBreakInterval === 0;
+
+        setCompletedFocusSessions(newCompletedSessions);
+        setTotalFocusMinutes((prevMinutes) => prevMinutes + finishedFocusMinutes);
 
         if (shouldTakeLongBreak) {
           setMode("longBreak");
-          setIsRunning(autoStartBreaks);
+          setIsRunning(shouldAutoStartBreaks);
           showNotification("Time for a long break!");
         } else {
           setMode("shortBreak");
-          setIsRunning(autoStartBreaks);
+          setIsRunning(shouldAutoStartBreaks);
           showNotification("Time for a break!");
         }
       } else {
@@ -251,10 +317,14 @@ export function TimerProvider({
         setIsRunning(false);
         showNotification("Break is over! Time to focus.");
       }
+
+      isFinishingRef.current = false;
     }, 0);
   }
 
   function resetTimer() {
+    isFinishingRef.current = false;
+
     animateBackToFull(() => {
       setSecondsLeft(currentMinutes * 60);
     });
@@ -271,6 +341,7 @@ export function TimerProvider({
 
     localStorage.setItem(storageKey, JSON.stringify(settings));
 
+    isFinishingRef.current = false;
     setMode("focus");
     setSecondsLeft(focusMinutes * 60);
     setIsRunning(false);
@@ -278,6 +349,8 @@ export function TimerProvider({
   }
 
   function setModeAndReset(nextMode: TimerMode) {
+    isFinishingRef.current = false;
+
     setMode(nextMode);
 
     const nextMinutes =
@@ -289,6 +362,27 @@ export function TimerProvider({
 
     setSecondsLeft(nextMinutes * 60);
     setIsRunning(false);
+  }
+
+  function resetStatistics() {
+    setCompletedFocusSessions(0);
+    setTotalFocusMinutes(0);
+  }
+
+  function resetSettingsToDefault() {
+    setFocusMinutes(DEFAULT_TIMER_SETTINGS.focusMinutes);
+    setShortBreakMinutes(DEFAULT_TIMER_SETTINGS.shortBreakMinutes);
+    setLongBreakMinutes(DEFAULT_TIMER_SETTINGS.longBreakMinutes);
+    setLongBreakInterval(DEFAULT_TIMER_SETTINGS.longBreakInterval);
+    setAutoStartBreaks(DEFAULT_TIMER_SETTINGS.autoStartBreaks);
+
+    localStorage.setItem(storageKey, JSON.stringify(DEFAULT_TIMER_SETTINGS));
+
+    isFinishingRef.current = false;
+    setMode("focus");
+    setSecondsLeft(DEFAULT_TIMER_SETTINGS.focusMinutes * 60);
+    setIsRunning(false);
+    setScreen("timer");
   }
 
   return (
@@ -314,6 +408,7 @@ export function TimerProvider({
         rewindProgress,
         rewindStartProgress,
         isSnapping,
+        isTabRestoring,
         popupMessage,
         currentMinutes,
         displayMinutes,
@@ -325,6 +420,8 @@ export function TimerProvider({
         resetTimer,
         saveSettings,
         setModeAndReset,
+        resetStatistics,
+        resetSettingsToDefault,
         completedFocusSessions,
         totalFocusMinutes,
       }}
