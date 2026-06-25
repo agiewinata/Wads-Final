@@ -501,12 +501,11 @@ export default function CalendarPage() {
           <span />
         </div>
 
-        <div className="flex flex-col lg:flex-row" style={{ minHeight: 0 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "42% 58%", minHeight: 0 }}>
           <div
             style={{
               padding: "18px 20px",
               borderRight: "1px solid var(--line)",
-              flex: "0 0 40%",
               minWidth: 0,
             }}
           >
@@ -728,7 +727,6 @@ export default function CalendarPage() {
 
           <div
             style={{
-              flex: "1 1 60%",
               minWidth: 0,
               padding: "18px 22px",
             }}
