@@ -15,8 +15,6 @@ import {
   BarChart3,
   Columns3,
   LogOut,
-  Sun,
-  Moon,
   GraduationCap,
   Menu,
   X,
@@ -39,7 +37,6 @@ export default function Sidebar({ userName }: { userName: string | null }) {
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [dark, setDark] = useState(false);
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteCountdown, setDeleteCountdown] = useState(5);
@@ -53,11 +50,6 @@ export default function Sidebar({ userName }: { userName: string | null }) {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  useEffect(() => {
-    setDark(document.documentElement.classList.contains("dark"));
-  }, []);
-
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
@@ -81,17 +73,6 @@ export default function Sidebar({ userName }: { userName: string | null }) {
 
     return () => clearInterval(interval);
   }, [deleteOpen]);
-
-  function toggleTheme() {
-    const next = !document.documentElement.classList.contains("dark");
-    document.documentElement.classList.toggle("dark", next);
-
-    try {
-      localStorage.setItem("theme", next ? "dark" : "light");
-    } catch {}
-
-    setDark(next);
-  }
 
   async function handleLogout() {
     await signOut({
@@ -173,7 +154,6 @@ export default function Sidebar({ userName }: { userName: string | null }) {
           transition: "transform 0.25s ease",
         }}
       >
-        {/* brand */}
         <div className="flex items-center gap-3" style={{ padding: "20px 18px 16px" }}>
           <div
             className="grid place-items-center"
@@ -216,7 +196,6 @@ export default function Sidebar({ userName }: { userName: string | null }) {
           </div>
         </div>
 
-        {/* user */}
         <div
           className="flex items-center gap-2.5"
           style={{
@@ -292,7 +271,6 @@ export default function Sidebar({ userName }: { userName: string | null }) {
           </button>
         </div>
 
-        {/* nav */}
         <nav className="flex-1 flex flex-col gap-0.5 overflow-auto" style={{ padding: "8px 12px" }}>
           {NAV.map((item) => {
             const Icon = item.icon;
@@ -338,32 +316,13 @@ export default function Sidebar({ userName }: { userName: string | null }) {
           })}
         </nav>
 
-        {/* footer: theme toggle + logout */}
         <div
-          className="flex items-center justify-between"
+          className="flex items-center justify-end"
           style={{
             padding: "12px 16px",
             borderTop: "1px solid var(--line)",
           }}
         >
-          <button
-            onClick={toggleTheme}
-            className="flex items-center gap-2"
-            style={{
-              background: "var(--paper-2)",
-              border: "1px solid var(--line)",
-              borderRadius: 999,
-              padding: "6px 12px",
-              fontSize: 12.5,
-              fontWeight: 500,
-              color: "var(--ink-soft)",
-              cursor: "pointer",
-            }}
-          >
-            {dark ? <Sun size={15} /> : <Moon size={15} />}
-            {dark ? "Light" : "Dark"}
-          </button>
-
           <button
             onClick={handleLogout}
             aria-label="Log out"

@@ -2,8 +2,6 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
-
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -115,74 +113,6 @@
   --shadow-lg: 0 8px 18px rgba(43, 39, 34, 0.16), 0 28px 60px -22px rgba(43, 39, 34, 0.45);
 }
 
-.dark {
-  --background: #11141a;
-  --foreground: #f3efe7;
-  --card: #1c2028;
-  --card-foreground: #f3efe7;
-  --popover: #1c2028;
-  --popover-foreground: #f3efe7;
-
-  --primary: #8fa2ff;
-  --primary-foreground: #11141a;
-  --secondary: #252b3a;
-  --secondary-foreground: #e8ecff;
-  --muted: #252931;
-  --muted-foreground: #a9a294;
-  --accent: #8fa2ff;
-  --accent-foreground: #11141a;
-  --destructive: #e68078;
-  --border: #303642;
-  --input: #303642;
-  --ring: #8fa2ff;
-
-  --desk: #141820;
-  --desk-grid: #202633;
-  --paper: #1d222b;
-  --paper-2: #252b36;
-  --ink: #f3efe7;
-  --ink-soft: #cbd5e1;
-  --ink-faint: #8f887d;
-  --line: #303642;
-  --line-strong: #3b4352;
-
-  --rule: rgba(255, 255, 255, 0.22);
-  --margin: #8d5353;
-
-  --accent-press: #a7b6ff;
-  --accent-soft: #dce8ff;
-  --accent-text: #d8dfff;
-
-  --highlight: #7a642c;
-
-  --good: #88c991;
-  --good-soft: #203629;
-  --warn: #e0ad55;
-  --warn-soft: #3a2f1e;
-  --bad: #e68078;
-  --bad-soft: #3b2625;
-  --pin: #e98a84;
-
-  --note-yellow: #b99a35;
-  --note-yellow-edge: #967c28;
-  --note-pink: #9f6070;
-  --note-pink-edge: #844d5b;
-  --note-mint: #668f63;
-  --note-mint-edge: #537650;
-  --note-blue: #6d8fc2;
-  --note-blue-edge: #5876a2;
-  --note-text: #fff7e8;
-
-  --auth-line: rgba(255, 255, 255, 0.28);
-  --auth-line-focus: #8fa2ff;
-  --auth-button-bg: rgba(255, 255, 255, 0.12);
-  --auth-button-hover: rgba(255, 255, 255, 0.18);
-
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --shadow: 0 2px 5px rgba(0, 0, 0, 0.35), 0 16px 34px -16px rgba(0, 0, 0, 0.65);
-  --shadow-lg: 0 3px 8px rgba(0, 0, 0, 0.45), 0 30px 60px -22px rgba(0, 0, 0, 0.8);
-}
-
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -258,10 +188,6 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
-.dark .sticky::after {
-  background: rgba(255, 255, 255, 0.14);
-}
-
 .sticky--yellow {
   background: var(--note-yellow);
 }
@@ -319,10 +245,6 @@
   border-radius: 34px;
   padding: 12px;
   box-shadow: var(--shadow-lg), inset 0 0 0 2px rgba(255, 255, 255, 0.04);
-}
-
-.dark .phone {
-  background: #0d0e12;
 }
 
 .phone-screen {
