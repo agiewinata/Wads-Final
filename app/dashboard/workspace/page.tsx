@@ -629,14 +629,19 @@ export default function WorkspacePage() {
                       const { votes, threshold, myVoted, canVote, multi } = voteInfo(task);
                       const done = task.completed;
                       const boxChecked = canVote ? myVoted : done;
+                      const canEdit =
+                        currentUserIsLeader ||
+                        (!!currentUserId && task.assignees.some((a) => a.user.id === currentUserId));
                       return (
                         <div
                           key={task.id}
-                          onClick={() => openEditTask(task)}
+                          onClick={() => {
+                            if (canEdit) openEditTask(task);
+                          }}
                           className="group"
                           style={{
                             position: "relative", display: "flex", alignItems: "center", gap: 12,
-                            minHeight: 58, paddingLeft: 70, paddingRight: 14, cursor: "pointer",
+                            minHeight: 58, paddingLeft: 70, paddingRight: 14, cursor: canEdit ? "pointer" : "default",
                             borderTop: idx === 0 ? "none" : "1px solid var(--line)",
                             background: done ? "var(--paper-2)" : "transparent",
                           }}
@@ -684,15 +689,29 @@ export default function WorkspacePage() {
                             </div>
                           </div>
 
-                          <button
-                            onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
-                            title="Delete task"
-                            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-faint)", padding: 4, flexShrink: 0, display: "grid", placeItems: "center" }}
-                            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--bad)")}
-                            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--ink-faint)")}
-                          >
-                            <X size={16} />
-                          </button>
+                          {currentUserIsLeader && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteTask(task.id);
+                              }}
+                              title="Delete task"
+                              style={{
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                color: "var(--ink-faint)",
+                                padding: 4,
+                                flexShrink: 0,
+                                display: "grid",
+                                placeItems: "center",
+                              }}
+                              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--bad)")}
+                              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--ink-faint)")}
+                            >
+                              <X size={16} />
+                            </button>
+                          )}
                         </div>
                       );
                     })}
