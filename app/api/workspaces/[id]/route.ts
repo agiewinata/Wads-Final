@@ -5,10 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 async function requireMember(userId: string, workspaceId: string) {
   return prisma.workspace.findFirst({
-    where: {
-      id: workspaceId,
-      OR: [{ ownerId: userId }, { members: { some: { userId } } }],
-    },
+    where: { id: workspaceId, OR: [{ ownerId: userId }, { members: { some: { userId } } }] },
   });
 }
 
@@ -30,8 +27,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       },
       tasks: {
         include: {
-          creator:  { select: { id: true, name: true } },
-          assignees: { include: { user: { select: { id: true, name: true } } } },
+          creator:     { select: { id: true, name: true } },
+          assignees:   { include: { user: { select: { id: true, name: true } } } },
+          completions: { select: { userId: true } },
         },
         orderBy: { createdAt: "desc" },
       },

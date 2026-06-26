@@ -25,6 +25,7 @@ model User {
   workspaceMemberships     WorkspaceMember[]
   workspaceTasksCreated    WorkspaceTask[]           @relation("WorkspaceTaskCreator")
   workspaceTaskAssignments WorkspaceTaskAssignee[]
+  workspaceTaskCompletions WorkspaceTaskCompletion[]
 }
 
 model Task {
@@ -141,11 +142,23 @@ model WorkspaceTask {
   workspace Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   creator   User                  @relation("WorkspaceTaskCreator", fields: [createdBy], references: [id], onDelete: Cascade)
   assignees WorkspaceTaskAssignee[]
+  completions WorkspaceTaskCompletion[]
 }
 
 model WorkspaceTaskAssignee {
   taskId String
   userId String
+
+  task WorkspaceTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, userId])
+}
+
+model WorkspaceTaskCompletion {
+  taskId    String
+  userId    String
+  createdAt DateTime @default(now())
 
   task WorkspaceTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
   user User          @relation(fields: [userId], references: [id], onDelete: Cascade)

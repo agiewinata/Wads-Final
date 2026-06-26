@@ -24,6 +24,7 @@ type WTask = {
   createdBy: string;
   creator: { id: string; name: string | null };
   assignees: { user: { id: string; name: string | null } }[];
+  completions: { userId: string }[];
 };
 
 type WorkspaceDetail = {
@@ -193,6 +194,7 @@ export default function WorkspacePage() {
   const [showJoin, setShowJoin] = useState(() => !!searchParams.get("join"));
   const [showAddTask, setShowAddTask] = useState(false);
   const [editingTask, setEditingTask] = useState<WTask | null>(null);
+  const [confirmAction, setConfirmAction] = useState<null | "delete" | "leave">(null);
 
   const [newName, setNewName] = useState("");
   const [joinCode, setJoinCode] = useState(() => searchParams.get("join") ?? "");
@@ -339,13 +341,16 @@ export default function WorkspacePage() {
     }
   }
 
-  async function toggleTask(taskId: string, completed: boolean) {
+  // CHANGED: toggle the current user's "done" vote via the /complete endpoint
+  async function toggleCompletion(taskId: string) {
     if (!selectedId) return;
-    await csrfFetch(`/api/workspaces/${selectedId}/tasks/${taskId}`, {
-      method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ completed }),
-    });
-    setDetail((d) => (d ? { ...d, tasks: d.tasks.map((t) => (t.id === taskId ? { ...t, completed } : t)) } : d));
+    const res = await csrfFetch(`/api/workspaces/${selectedId}/tasks/${taskId}/complete`, { method: "POST" });
+    if (res.ok) {
+      const updated: WTask = await res.json();
+      setDetail((d) => (d ? { ...d, tasks: d.tasks.map((t) => (t.id === updated.id ? updated : t)) } : d));
+    } else if (selectedId) {
+      fetchDetail(selectedId);
+    }
   }
 
   async function deleteTask(taskId: string) {
@@ -354,12 +359,19 @@ export default function WorkspacePage() {
     setDetail((d) => (d ? { ...d, tasks: d.tasks.filter((t) => t.id !== taskId) } : d));
   }
 
-  async function handleDelete() {
+  // CHANGED: delete/leave now go through the custom confirm modal
+  async function runConfirmedAction() {
     if (!selectedId || !detail) return;
-    if (!confirm(`Delete workspace "${detail.name}"? This cannot be undone.`)) return;
-    await csrfFetch(`/api/workspaces/${selectedId}`, { method: "DELETE" });
-    setWorkspaces((p) => p.filter((w) => w.id !== selectedId));
-    setSelectedId(null);
+    if (confirmAction === "delete") {
+      await csrfFetch(`/api/workspaces/${selectedId}`, { method: "DELETE" });
+      setWorkspaces((p) => p.filter((w) => w.id !== selectedId));
+      setSelectedId(null);
+    } else if (confirmAction === "leave") {
+      await csrfFetch(`/api/workspaces/${selectedId}/leave`, { method: "POST" });
+      setWorkspaces((p) => p.filter((w) => w.id !== selectedId));
+      setSelectedId(null);
+    }
+    setConfirmAction(null);
   }
 
   async function handlePromote(memberId: string) {
@@ -374,19 +386,25 @@ export default function WorkspacePage() {
     if (res.ok) await fetchDetail(selectedId);
     else setError((await res.json().catch(() => ({}))).error ?? "Failed to demote member");
   }
-  async function handleLeave() {
-    if (!selectedId || !detail) return;
-    if (!confirm(`Leave workspace "${detail.name}"?`)) return;
-    await csrfFetch(`/api/workspaces/${selectedId}/leave`, { method: "POST" });
-    setWorkspaces((p) => p.filter((w) => w.id !== selectedId));
-    setSelectedId(null);
-  }
   function copyInviteLink() {
     if (!detail) return;
     const url = `${window.location.origin}/dashboard/workspace?join=${detail.inviteCode}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  // NEW: per-task vote info for the current user
+  function voteInfo(task: WTask) {
+    const assigneeIds = task.assignees.map((a) => a.user.id);
+    const votes = assigneeIds.length === 0
+      ? task.completions.length
+      : task.completions.filter((c) => assigneeIds.includes(c.userId)).length;
+    const threshold = Math.floor(assigneeIds.length / 2) + 1;
+    const myVoted = !!currentUserId && task.completions.some((c) => c.userId === currentUserId);
+    const canVote = assigneeIds.length === 0 || (!!currentUserId && assigneeIds.includes(currentUserId));
+    const multi = assigneeIds.length > 1;
+    return { votes, threshold, myVoted, canVote, multi };
   }
 
   const overlay: React.CSSProperties = {
@@ -435,7 +453,7 @@ export default function WorkspacePage() {
           </div>
 
           {loading ? (
-            <p style={{ fontSize: 13, color: "var(--ink-faint)", textAlign: "center", marginTop: 20 }}>Loading…</p>
+            <p style={{ fontSize: 13, color: "var(--ink-faint)", textAlign: "center", marginTop: 20 }}>Loading...</p>
           ) : workspaces.length === 0 ? (
             <p style={{ fontSize: 13, color: "var(--ink-faint)", textAlign: "center", marginTop: 20 }}>No workspaces yet</p>
           ) : (
@@ -484,7 +502,7 @@ export default function WorkspacePage() {
               Select or create a workspace to get started
             </div>
           ) : detailLoading ? (
-            <div className="paper grid place-items-center" style={{ height: 220, color: "var(--ink-faint)", fontSize: 14 }}>Loading…</div>
+            <div className="paper grid place-items-center" style={{ height: 220, color: "var(--ink-faint)", fontSize: 14 }}>Loading...</div>
           ) : detailError ? (
             <div className="paper flex flex-col items-center justify-center" style={{ height: 220, gap: 12 }}>
               <p style={{ color: "var(--bad)", fontSize: 14, margin: 0 }}>{detailError}</p>
@@ -518,7 +536,7 @@ export default function WorkspacePage() {
                     {copied ? <><Check size={14} /> Copied!</> : <><Copy size={14} /> Copy invite link</>}
                   </button>
                   <button
-                    onClick={detail.ownerId === currentUserId ? handleDelete : handleLeave}
+                    onClick={() => setConfirmAction(detail.ownerId === currentUserId ? "delete" : "leave")}
                     style={{
                       padding: "9px 15px",
                       fontSize: 13.5,
@@ -546,6 +564,14 @@ export default function WorkspacePage() {
 
               {/* team */}
               <div className="paper" style={{ padding: "18px 20px" }}>
+                <div style={{ marginBottom: 16 }}>
+                  <h3 style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: 17, fontWeight: 600, color: "var(--ink)" }}>
+                    Team
+                  </h3>
+                  <p style={{ fontSize: 12.5, color: "var(--ink-soft)", marginTop: 4 }}>
+                    {team.length} {team.length === 1 ? "person" : "people"} collaborating
+                  </p>
+                </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16 }}>
                   {team.map((person, i) => {
                     const isLeader = person.role === "leader";
@@ -586,14 +612,6 @@ export default function WorkspacePage() {
 
               {/* shared tasks */}
               <div className="paper" style={{ padding: "18px 20px" }}>
-                <div style={{ marginBottom: 16 }}>
-                  <h3 style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: 17, fontWeight: 600, color: "var(--ink)" }}>
-                    Team
-                  </h3>
-                  <p style={{ fontSize: 12.5, color: "var(--ink-soft)", marginTop: 4 }}>
-                    {team.length} {team.length === 1 ? "person" : "people"} collaborating
-                  </p>
-                </div>
                 <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
                   <h3 style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: 17, fontWeight: 600, color: "var(--ink)" }}>Shared tasks</h3>
                   <button className="btn-ink" style={{ padding: "8px 14px", fontSize: 13 }} onClick={() => { clearTaskForm(); setEditingTask(null); setError(""); setShowAddTask(true); }}>
@@ -608,6 +626,9 @@ export default function WorkspacePage() {
                     <div style={{ position: "absolute", left: 54, top: 0, bottom: 0, width: 1, background: "var(--margin)", opacity: 0.6 }} />
                     {detail.tasks.map((task, idx) => {
                       const assignees = task.assignees.map((a) => a.user.name ?? "unknown").join(", ");
+                      const { votes, threshold, myVoted, canVote, multi } = voteInfo(task);
+                      const done = task.completed;
+                      const boxChecked = canVote ? myVoted : done;
                       return (
                         <div
                           key={task.id}
@@ -617,32 +638,44 @@ export default function WorkspacePage() {
                             position: "relative", display: "flex", alignItems: "center", gap: 12,
                             minHeight: 58, paddingLeft: 70, paddingRight: 14, cursor: "pointer",
                             borderTop: idx === 0 ? "none" : "1px solid var(--line)",
-                            background: task.completed ? "var(--paper-2)" : "transparent",
+                            background: done ? "var(--paper-2)" : "transparent",
                           }}
                         >
-                          {/* checkbox */}
+                          {/* per-user done vote */}
                           <button
-                            onClick={(e) => { e.stopPropagation(); toggleTask(task.id, !task.completed); }}
+                            onClick={(e) => { e.stopPropagation(); if (canVote) toggleCompletion(task.id); }}
+                            title={canVote ? "Mark done" : "Only assignees can mark this done"}
                             style={{
                               position: "absolute", left: 22, top: "50%", transform: "translateY(-50%)",
-                              width: 20, height: 20, borderRadius: 6, flexShrink: 0, cursor: "pointer",
+                              width: 20, height: 20, borderRadius: 6, flexShrink: 0,
+                              cursor: canVote ? "pointer" : "default",
                               display: "grid", placeItems: "center",
-                              border: task.completed ? "1px solid var(--accent)" : "1px solid var(--line-strong)",
-                              background: task.completed ? "var(--accent)" : "transparent", color: "#fff",
+                              border: boxChecked ? "1px solid var(--accent)" : "1px solid var(--line-strong)",
+                              background: boxChecked ? "var(--accent)" : "transparent", color: "#fff",
+                              opacity: canVote ? 1 : 0.55,
                             }}
                           >
-                            {task.completed && <Check size={13} strokeWidth={3} />}
+                            {boxChecked && <Check size={13} strokeWidth={3} />}
                           </button>
 
                           <div style={{ flex: 1, minWidth: 0, paddingTop: 8, paddingBottom: 8 }}>
                             <div className="flex items-center" style={{ gap: 10 }}>
                               <span style={{
                                 fontSize: 14.5, fontWeight: 600,
-                                color: task.completed ? "var(--ink-faint)" : "var(--ink)",
-                                textDecoration: task.completed ? "line-through" : "none",
+                                color: done ? "var(--ink-faint)" : "var(--ink)",
+                                textDecoration: done ? "line-through" : "none",
                                 overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                               }}>{task.title}</span>
                               <PriorityBars value={task.priority} />
+                              {multi && (
+                                done ? (
+                                  <span className="pill" style={{ background: "var(--good-soft)", color: "var(--good)", flexShrink: 0 }}>Done</span>
+                                ) : (
+                                  <span className="flex items-center" style={{ gap: 4, flexShrink: 0, fontSize: 11.5, fontWeight: 700, color: "var(--ink-soft)", background: "var(--paper-2)", border: "1px solid var(--line)", borderRadius: 999, padding: "2px 8px" }}>
+                                    <Check size={11} strokeWidth={3} /> {votes}/{threshold}
+                                  </span>
+                                )
+                              )}
                             </div>
                             <div className="flex items-center flex-wrap" style={{ gap: "2px 10px", marginTop: 4, fontSize: 12, color: "var(--ink-faint)" }}>
                               <span>by {task.creator.name ?? "unknown"}</span>
@@ -671,6 +704,31 @@ export default function WorkspacePage() {
         </div>
       </div>
 
+      {/* delete / leave confirm modal */}
+      {confirmAction && detail && (
+        <div style={overlay} onClick={() => setConfirmAction(null)}>
+          <div className="paper" style={{ width: "100%", maxWidth: 410, padding: "24px 26px" }} onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ margin: "0 0 10px", fontFamily: "var(--font-heading)", fontSize: 19, fontWeight: 600, color: "var(--ink)" }}>
+              {confirmAction === "delete" ? "Delete this workspace?" : "Leave this workspace?"}
+            </h2>
+            <p style={{ fontSize: 13.5, color: "var(--ink-soft)", lineHeight: 1.55, margin: 0 }}>
+              {confirmAction === "delete"
+                ? <>“{detail.name}” and all of its shared tasks will be permanently removed. This can’t be undone.</>
+                : <>You’ll be removed from “{detail.name}” and lose access to its shared tasks.</>}
+            </p>
+            <div className="flex justify-end" style={{ gap: 8, marginTop: 22 }}>
+              <button className="btn-paper" onClick={() => setConfirmAction(null)}>Cancel</button>
+              <button
+                onClick={runConfirmedAction}
+                style={{ padding: "9px 18px", fontSize: 13.5, fontWeight: 600, borderRadius: 10, cursor: "pointer", background: "var(--bad)", color: "#fff", border: "none" }}
+              >
+                {confirmAction === "delete" ? "Delete" : "Leave"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* create modal */}
       {showCreate && (
         <div style={overlay} onClick={() => setShowCreate(false)}>
@@ -681,7 +739,7 @@ export default function WorkspacePage() {
             {error && <p style={{ color: "var(--bad)", fontSize: 13, margin: "8px 0 0" }}>{error}</p>}
             <div className="flex justify-end" style={{ gap: 8, marginTop: 20 }}>
               <button className="btn-paper" onClick={() => setShowCreate(false)}>Cancel</button>
-              <button className="btn-ink" onClick={handleCreate} disabled={saving}>{saving ? "Creating…" : "Create"}</button>
+              <button className="btn-ink" onClick={handleCreate} disabled={saving}>{saving ? "Creating..." : "Create"}</button>
             </div>
           </div>
         </div>
@@ -706,7 +764,7 @@ export default function WorkspacePage() {
             {error && <p style={{ color: "var(--bad)", fontSize: 13, margin: "8px 0 0" }}>{error}</p>}
             <div className="flex justify-end" style={{ gap: 8, marginTop: 20 }}>
               <button className="btn-paper" onClick={() => setShowJoin(false)}>Cancel</button>
-              <button className="btn-ink" onClick={handleJoin} disabled={saving}>{saving ? "Joining…" : "Join"}</button>
+              <button className="btn-ink" onClick={handleJoin} disabled={saving}>{saving ? "Joining..." : "Join"}</button>
             </div>
           </div>
         </div>
@@ -721,7 +779,7 @@ export default function WorkspacePage() {
             </DialogTitle>
             <div className="flex gap-2">
               <button onClick={closeTaskModal} className="btn-paper" style={{ padding: "6px 14px", fontSize: 12.5 }}>Cancel</button>
-              <button onClick={handleSaveTask} disabled={saving} className="btn-ink" style={{ padding: "6px 14px", fontSize: 12.5 }}>{saving ? "Saving…" : "Save"}</button>
+              <button onClick={handleSaveTask} disabled={saving} className="btn-ink" style={{ padding: "6px 14px", fontSize: 12.5 }}>{saving ? "Saving..." : "Save"}</button>
             </div>
           </DialogHeader>
 
@@ -730,12 +788,12 @@ export default function WorkspacePage() {
 
             <div className="space-y-1">
               <Label style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-soft)" }}>Title <span style={{ color: "var(--bad)" }}>*</span></Label>
-              <Input value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} placeholder="Task title…" className="bg-transparent rounded-none px-0 text-base focus-visible:ring-0" style={{ border: "none", borderBottom: "1.5px solid var(--line-strong)", color: "var(--ink)" }} />
+              <Input value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} placeholder="Task title..." className="bg-transparent rounded-none px-0 text-base focus-visible:ring-0" style={{ border: "none", borderBottom: "1.5px solid var(--line-strong)", color: "var(--ink)" }} />
             </div>
 
             <div className="space-y-1">
               <Label style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-soft)" }}>Details</Label>
-              <Textarea value={taskDetails} onChange={(e) => setTaskDetails(e.target.value)} placeholder="type here…" rows={3} className="resize-none text-sm focus-visible:ring-1" style={{ border: "1px solid var(--line-strong)", borderRadius: 9, background: "var(--paper-2)", color: "var(--ink)" }} />
+              <Textarea value={taskDetails} onChange={(e) => setTaskDetails(e.target.value)} placeholder="type here..." rows={3} className="resize-none text-sm focus-visible:ring-1" style={{ border: "1px solid var(--line-strong)", borderRadius: 9, background: "var(--paper-2)", color: "var(--ink)" }} />
             </div>
 
             <div className="space-y-2">

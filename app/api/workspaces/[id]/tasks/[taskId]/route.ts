@@ -2,19 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { effectiveVoteCount, isTaskDone } from "@/lib/workspace-completion";
 
 async function requireMember(userId: string, workspaceId: string) {
   return prisma.workspace.findFirst({
-    where: {
-      id: workspaceId,
-      OR: [{ ownerId: userId }, { members: { some: { userId } } }],
-    },
+    where: { id: workspaceId, OR: [{ ownerId: userId }, { members: { some: { userId } } }] },
   });
 }
 
 const taskInclude = {
-  creator:   { select: { id: true, name: true } },
-  assignees: { include: { user: { select: { id: true, name: true } } } },
+  creator:     { select: { id: true, name: true } },
+  assignees:   { include: { user: { select: { id: true, name: true } } } },
+  completions: { select: { userId: true } },
 };
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string; taskId: string }> }) {
@@ -33,21 +32,35 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       await prisma.workspaceTaskAssignee.deleteMany({ where: { taskId } });
       if (body.assignees.length > 0) {
         await prisma.workspaceTaskAssignee.createMany({
-          data: (body.assignees as string[]).map(userId => ({ taskId, userId })),
+          data: (body.assignees as string[]).map((userId) => ({ taskId, userId })),
           skipDuplicates: true,
         });
       }
     }
 
-    const task = await prisma.workspaceTask.update({
+    // Update scalar fields
+    await prisma.workspaceTask.update({
       where: { id: taskId },
       data: {
-        ...(body.title     !== undefined && { title: body.title.trim() }),
-        ...(body.details   !== undefined && { details: body.details?.trim() || null }),
-        ...(body.priority  !== undefined && { priority: body.priority ? Number(body.priority) : null }),
-        ...(body.dueDate   !== undefined && { dueDate: body.dueDate ? new Date(body.dueDate) : null }),
-        ...(body.completed !== undefined && { completed: Boolean(body.completed) }),
+        ...(body.title    !== undefined && { title: body.title.trim() }),
+        ...(body.details  !== undefined && { details: body.details?.trim() || null }),
+        ...(body.priority !== undefined && { priority: body.priority ? Number(body.priority) : null }),
+        ...(body.dueDate  !== undefined && { dueDate: body.dueDate ? new Date(body.dueDate) : null }),
       },
+    });
+
+    // Re-derive done status (assignee set may have changed, shifting the majority threshold)
+    const fresh = await prisma.workspaceTask.findUnique({
+      where: { id: taskId },
+      include: { assignees: true, completions: true },
+    });
+    const assigneeIds = fresh?.assignees.map((a) => a.userId) ?? [];
+    const votes = effectiveVoteCount(fresh?.completions.map((c) => c.userId) ?? [], assigneeIds);
+    const done = isTaskDone(votes, assigneeIds.length);
+
+    const task = await prisma.workspaceTask.update({
+      where: { id: taskId },
+      data: { completed: done },
       include: taskInclude,
     });
 
