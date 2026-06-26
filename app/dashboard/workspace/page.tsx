@@ -755,7 +755,7 @@ export default function WorkspacePage() {
             <h2 style={{ margin: "0 0 18px", fontFamily: "var(--font-heading)", fontSize: 19, fontWeight: 600, color: "var(--ink)" }}>New workspace</h2>
             <label style={modalLabel}>Workspace name</label>
             <input style={modalInput} value={newName} autoFocus onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleCreate()} placeholder="e.g. Study Group A" />
-            {error && <p style={{ color: "var(--bad)", fontSize: 13, margin: "8px 0 0" }}>{error}</p>}
+            <div className="app-message app-message-error">{error}</div>
             <div className="flex justify-end" style={{ gap: 8, marginTop: 20 }}>
               <button className="btn-paper" onClick={() => setShowCreate(false)}>Cancel</button>
               <button className="btn-ink" onClick={handleCreate} disabled={saving}>{saving ? "Creating..." : "Create"}</button>
@@ -780,7 +780,7 @@ export default function WorkspacePage() {
               onKeyDown={(e) => e.key === "Enter" && handleJoin()}
               placeholder="Paste invite link or code"
             />
-            {error && <p style={{ color: "var(--bad)", fontSize: 13, margin: "8px 0 0" }}>{error}</p>}
+            <div className="app-message app-message-error">{error}</div>
             <div className="flex justify-end" style={{ gap: 8, marginTop: 20 }}>
               <button className="btn-paper" onClick={() => setShowJoin(false)}>Cancel</button>
               <button className="btn-ink" onClick={handleJoin} disabled={saving}>{saving ? "Joining..." : "Join"}</button>

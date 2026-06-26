@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Wads Auth",
-  description: "Secure authentication with Better Auth + Firebase + Prisma",
+  title: "Quest Class",
+  description: "Study Planner & Productivity Tracker",
 };
 
 export default function RootLayout({

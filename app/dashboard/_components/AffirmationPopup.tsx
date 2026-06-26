@@ -40,102 +40,41 @@ export default function AffirmationPopup() {
   if (!open) return null;
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.45)",
-        zIndex: 9000,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 24,
-      }}
-    >
-      <div
-        style={{
-          background: "#fff",
-          border: "3px solid #111",
-          borderRadius: "6px 8px 5px 7px / 7px 5px 8px 6px",
-          boxShadow: "8px 10px 0 rgba(0,0,0,0.18)",
-          maxWidth: 400,
-          width: "100%",
-          overflow: "hidden",
-        }}
-      >
-        {/* Header */}
+    <div className="app-overlay">
+      <div className="paper" style={{ maxWidth: 400, width: "100%", overflow: "hidden", padding: 0 }}>
         <div
           style={{
-            borderBottom: "2px solid #e4e4e7",
+            borderBottom: "1px solid var(--line)",
             padding: "14px 20px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
           }}
         >
-          <h2
-            style={{
-              fontSize: 16,
-              fontWeight: 800,
-              fontStyle: "italic",
-              letterSpacing: "-0.02em",
-              color: "#111",
-              margin: 0,
-            }}
-          >
-            good to see you
+          <h2 className="app-modal-title" style={{ fontSize: 17 }}>
+            Good to see you
           </h2>
-          <span style={{ fontSize: 11, color: "#aaa", fontStyle: "italic" }}>
-            daily check-in
-          </span>
+          <span className="app-modal-subtle">daily check-in</span>
         </div>
 
-        {/* Body */}
-        <div style={{ padding: "20px 22px", minHeight: 72 }}>
+        <div style={{ padding: "18px 22px", minHeight: 72 }}>
           {loading ? (
-            <p style={{ fontSize: 13, color: "#bbb", fontStyle: "italic", margin: 0 }}>
-              thinking of something for you…
-            </p>
+            <div className="app-message">Thinking of something for you…</div>
           ) : (
-            <p
-              style={{
-                fontSize: 14,
-                lineHeight: 1.75,
-                color: "#333",
-                margin: 0,
-                whiteSpace: "pre-wrap",
-              }}
-            >
-              {message}
-            </p>
+            <div className="app-message app-message-success">{message}</div>
           )}
         </div>
 
-        {/* Footer */}
         <div
           style={{
-            borderTop: "2px solid #e4e4e7",
+            borderTop: "1px solid var(--line)",
             padding: "12px 20px",
             display: "flex",
             justifyContent: "flex-end",
           }}
         >
-          <button
-            onClick={dismiss}
-            disabled={loading}
-            style={{
-              padding: "6px 18px",
-              fontSize: 13,
-              fontWeight: 700,
-              background: "#111",
-              color: "#fff",
-              border: "2px solid #111",
-              borderRadius: "3px 5px 3px 5px / 5px 3px 5px 3px",
-              cursor: loading ? "default" : "pointer",
-              opacity: loading ? 0.4 : 1,
-            }}
-          >
-            thanks
+          <button onClick={dismiss} className="btn-ink">
+            {loading ? "Skip" : "Thanks"}
           </button>
         </div>
       </div>

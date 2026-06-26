@@ -110,9 +110,9 @@
   --auth-button-bg: rgba(255, 255, 255, 0.45);
   --auth-button-hover: rgba(255, 255, 255, 0.65);
 
-  --shadow-sm: 0 1px 2px rgba(43, 39, 34, 0.06);
-  --shadow: 0 2px 4px rgba(43, 39, 34, 0.07), 0 12px 26px -14px rgba(43, 39, 34, 0.24);
-  --shadow-lg: 0 3px 6px rgba(43, 39, 34, 0.08), 0 24px 50px -20px rgba(43, 39, 34, 0.32);
+  --shadow-sm: 0 2px 4px rgba(43, 39, 34, 0.12);
+  --shadow: 0 4px 10px rgba(43, 39, 34, 0.13), 0 18px 34px -16px rgba(43, 39, 34, 0.38);
+  --shadow-lg: 0 8px 18px rgba(43, 39, 34, 0.16), 0 28px 60px -22px rgba(43, 39, 34, 0.45);
 }
 
 .dark {
@@ -636,4 +636,77 @@
 
 .themed-cal .react-calendar__tile--active.react-calendar__month-view__days__day--weekend {
   color: #fff !important;
+}
+
+.app-message {
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 500;
+  background: var(--paper-2);
+  color: var(--ink-soft);
+}
+
+.app-message-error {
+  border-color: var(--bad);
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+
+.app-message-warning {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.app-message-success {
+  border-color: var(--good);
+  background: var(--good-soft);
+  color: var(--good);
+}
+
+.btn-paper-accent:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.btn-paper-danger {
+  color: var(--bad);
+  border-color: var(--bad);
+}
+
+.btn-paper-danger:hover {
+  background: var(--bad);
+  border-color: var(--bad);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.app-modal-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.app-modal-subtle {
+  font-size: 12px;
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+.app-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(31, 35, 49, 0.48);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
 }

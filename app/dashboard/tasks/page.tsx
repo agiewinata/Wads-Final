@@ -857,22 +857,50 @@ export default function TasksPage() {
       </div>
 
       {burnoutOpen && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-          <div className="paper" style={{ maxWidth: 400, width: "100%", overflow: "hidden", padding: 0 }}>
-            <div style={{ borderBottom: "1px solid var(--line)", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 17, fontWeight: 600, color: "var(--ink)", margin: 0 }}>Heads up</h2>
-              <span style={{ fontSize: 11, color: "var(--ink-faint)" }}>burnout check</span>
+        <div className="app-overlay">
+          <div className="paper" style={{ maxWidth: 420, width: "100%", overflow: "hidden", padding: 0 }}>
+            <div
+              style={{
+                borderBottom: "1px solid var(--line)",
+                padding: "14px 20px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <h2 className="app-modal-title" style={{ fontSize: 17 }}>
+                Heads up
+              </h2>
+              <span className="app-modal-subtle">burnout check</span>
             </div>
 
             <div style={{ padding: "18px 22px" }}>
-              <p style={{ fontSize: 14, lineHeight: 1.7, color: "var(--ink-soft)", margin: 0, whiteSpace: "pre-wrap" }}>
+              <div className="app-message app-message-warning">
                 {burnoutMsg}
-              </p>
+              </div>
             </div>
 
-            <div style={{ borderTop: "1px solid var(--line)", padding: "12px 20px", display: "flex", justifyContent: "flex-end", gap: 8 }}>
-              <button onClick={() => setBurnoutOpen(false)} className="btn-paper">Maybe later</button>
-              <button onClick={() => { setBurnoutOpen(false); doOpenAdd(); }} className="btn-ink">Add anyway</button>
+            <div
+              style={{
+                borderTop: "1px solid var(--line)",
+                padding: "12px 20px",
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: 8,
+              }}
+            >
+              <button onClick={() => setBurnoutOpen(false)} className="btn-paper">
+                Maybe later
+              </button>
+              <button
+                onClick={() => {
+                  setBurnoutOpen(false);
+                  doOpenAdd();
+                }}
+                className="btn-ink"
+              >
+                Add anyway
+              </button>
             </div>
           </div>
         </div>

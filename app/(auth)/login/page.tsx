@@ -123,9 +123,9 @@ function LoginForm() {
           </div>
 
           {error && (
-            <p className="text-sm font-medium" style={{ color: "#b5453d", marginBottom: 16 }}>
+            <div className="app-message app-message-error" style={{ marginBottom: 16 }}>
               {error}
-            </p>
+            </div>
           )}
 
           <button

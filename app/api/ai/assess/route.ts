@@ -73,35 +73,59 @@ Respond ONLY with valid JSON, no markdown fences:
 {"message": "string"}`;
   }
 
+  const fallback =
+    type === "burnout"
+      ? {
+          show:
+            overdue.length >= 3 ||
+            active.length >= 8 ||
+            (overdue.length >= 1 && dueSoon.length >= 3),
+          message:
+            overdue.length > 0
+              ? `You already have ${overdue.length} overdue task${
+                  overdue.length === 1 ? "" : "s"
+                }. Try finishing one first before adding more.`
+              : `You already have ${active.length} active tasks. Try clearing one small task before adding another.`,
+        }
+      : {
+          show: false,
+          message: `Good to see you, ${name}. You have ${dueSoon.length} task${
+            dueSoon.length === 1 ? "" : "s"
+          } coming up soon, with ${active.length} active and ${completed.length} completed so far.`,
+        };
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 2500);
+
   try {
     const ollamaRes = await fetch(`${OLLAMA_BASE}/api/chat`, {
-      method:  "POST",
+      method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
       body: JSON.stringify({
-        model:    OLLAMA_MODEL,
+        model: OLLAMA_MODEL,
         messages: [{ role: "user", content: prompt }],
-        stream:   false,
-        format:   "json",
+        stream: false,
+        format: "json",
       }),
     });
 
+    clearTimeout(timeout);
+
     if (!ollamaRes.ok) {
-      const errText = await ollamaRes.text().catch(() => "unknown");
-      return NextResponse.json({ error: `Ollama error: ${errText}` }, { status: 502 });
+      return NextResponse.json(fallback);
     }
 
-    const raw    = await ollamaRes.json() as { message?: { content?: string } };
-    const text   = raw.message?.content ?? "{}";
+    const raw = (await ollamaRes.json()) as { message?: { content?: string } };
+    const text = raw.message?.content ?? "{}";
     const parsed = JSON.parse(text) as { show?: boolean; message?: string };
 
     return NextResponse.json({
-      show:    parsed.show ?? false,
-      message: parsed.message ?? "",
+      show: type === "burnout" ? parsed.show ?? fallback.show : false,
+      message: parsed.message || fallback.message,
     });
   } catch {
-    return NextResponse.json(
-      { error: "Could not reach Ollama." },
-      { status: 502 },
-    );
+    clearTimeout(timeout);
+    return NextResponse.json(fallback);
   }
 }
