@@ -317,7 +317,6 @@ export default function Sidebar({ userName }: { userName: string | null }) {
         </nav>
 
         <div
-          className="flex items-center justify-end"
           style={{
             padding: "12px 16px",
             borderTop: "1px solid var(--line)",
@@ -326,18 +325,30 @@ export default function Sidebar({ userName }: { userName: string | null }) {
           <button
             onClick={handleLogout}
             aria-label="Log out"
-            className="grid place-items-center"
+            className="flex items-center justify-between"
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 9,
-              color: "var(--ink-faint)",
+              width: "100%",
+              padding: "9px 12px",
+              borderRadius: 10,
+              color: "var(--ink-soft)",
               background: "transparent",
               border: "none",
               cursor: "pointer",
+              fontSize: 13,
+              fontWeight: 600,
+              transition: "all .14s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--accent-soft)";
+              e.currentTarget.style.color = "var(--accent-text)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "var(--ink-soft)";
             }}
           >
-            <LogOut size={17} />
+            <span>Log out</span>
+            <LogOut size={18} />
           </button>
         </div>
       </aside>
