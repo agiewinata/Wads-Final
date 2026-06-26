@@ -55,6 +55,8 @@ interface AnalyticsData {
     completed: number;
     created: number;
     overdue: number;
+    focusMinutes: number;
+    studied: boolean;
   }[];
 }
 
@@ -433,11 +435,30 @@ export default function AnalyticsPage() {
 
   const focusTrend = data.trend.map((d) => ({
     date: d.date,
-    minutes: d.completed * 45,
+    minutes: d.focusMinutes ?? 0,
   }));
 
   const maxFocus = Math.max(0, ...focusTrend.map((d) => d.minutes));
   const totalFocusMinutes = focusTrend.reduce((sum, d) => sum + d.minutes, 0);
+
+  // consecutive days (ending today) with at least one completed task
+  const studyStreak = (() => {
+    const t = data.trend;
+    if (!t.length) return 0;
+
+    let i = t.length - 1;
+
+    if (!t[i].studied) i--;
+
+    let count = 0;
+
+    for (; i >= 0; i--) {
+      if (t[i].studied) count++;
+      else break;
+    }
+
+    return count;
+  })();
 
   const statusData = [
     { name: "Active", value: data.active, color: COLORS.active },
@@ -546,14 +567,14 @@ export default function AnalyticsPage() {
           bg="#65CDDE"
           label="Focus time"
           value={formatFocusTime(totalFocusMinutes)}
-          sub={`estimated ${periodSub}`}
+          sub={`from timer ${periodSub}`}
         />
 
         <StickyStat
           bg="#FFE66D"
           label="Streak"
-          value={`${Math.min(data.completed, 12)} days`}
-          sub="keep it going"
+          value={`${studyStreak} ${studyStreak === 1 ? "day" : "days"}`}
+          sub={studyStreak === 0 ? "no streak yet" : "keep it going"}
         />
 
         <StickyStat
@@ -655,7 +676,35 @@ export default function AnalyticsPage() {
               </ChartBox>
 
               <div className="flex items-center gap-4" style={{ marginTop: 12 }}>
-                ...
+                <div className="flex items-center gap-2">
+                  <span
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: "50%",
+                      background: COLORS.best,
+                      display: "inline-block",
+                    }}
+                  />
+                  <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>
+                    Best day
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: "50%",
+                      background: COLORS.focus,
+                      display: "inline-block",
+                    }}
+                  />
+                  <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>
+                    Normal day
+                  </span>
+                </div>
               </div>
             </WidgetCard>
           </div>

@@ -283,6 +283,23 @@ export function TimerProvider({
     animationRef.current = requestAnimationFrame(animateRewind);
   }
 
+  async function saveFocusSession(minutes: number) {
+    try {
+      await fetch("/api/timer/sessions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          minutes,
+          endedAt: new Date().toISOString(),
+        }),
+      });
+    } catch {
+      // don't break the timer if logging fails
+    }
+  }
+
   function handleTimerFinish() {
     if (isFinishingRef.current) return;
     isFinishingRef.current = true;
@@ -296,6 +313,8 @@ export function TimerProvider({
 
     animateBackToFull(() => {
       if (finishedMode === "focus") {
+        saveFocusSession(finishedFocusMinutes);
+
         const newCompletedSessions = completedFocusSessions + 1;
         const shouldTakeLongBreak =
           newCompletedSessions % finishedLongBreakInterval === 0;

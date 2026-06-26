@@ -21,6 +21,7 @@ model User {
   tasks                 Task[]
   categories            UserCategory[]
   events                Event[]
+  studySessions         StudySession[]
   workspacesOwned          Workspace[]               @relation("WorkspaceOwner")
   workspaceMemberships     WorkspaceMember[]
   workspaceTasksCreated    WorkspaceTask[]           @relation("WorkspaceTaskCreator")
@@ -99,6 +100,20 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([providerId, accountId])
+}
+
+model StudySession {
+  id        String   @id @default(cuid())
+  userId    String
+  minutes   Int
+  mode      String   @default("focus")
+  startedAt DateTime
+  endedAt   DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startedAt])
 }
 
 model Workspace {

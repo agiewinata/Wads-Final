@@ -20,18 +20,50 @@ export async function GET(req: NextRequest) {
 
   const userId = session.user.id;
 
-  const [personalTasks, wsTasks] = await Promise.all([
+  const oldestDate = new Date();
+  oldestDate.setDate(oldestDate.getDate() - days);
+
+  const [personalTasks, wsTasks, studySessions] = await Promise.all([
     prisma.task.findMany({
       where: { userId },
-      select: { title: true, category: true, completed: true, dueDate: true, priority: true, createdAt: true, updatedAt: true },
+      select: {
+        title: true,
+        category: true,
+        completed: true,
+        dueDate: true,
+        priority: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     }),
+
     prisma.workspaceTask.findMany({
       where: {
         workspace: {
           OR: [{ ownerId: userId }, { members: { some: { userId } } }],
         },
       },
-      select: { completed: true, dueDate: true, priority: true, createdAt: true, updatedAt: true },
+      select: {
+        completed: true,
+        dueDate: true,
+        priority: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+
+    prisma.studySession.findMany({
+      where: {
+        userId,
+        startedAt: {
+          gte: oldestDate,
+        },
+      },
+      select: {
+        minutes: true,
+        startedAt: true,
+        endedAt: true,
+      },
     }),
   ]);
 
@@ -133,10 +165,30 @@ export async function GET(req: NextRequest) {
           ? start.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
           : start.toLocaleDateString("en-US", { month: "short", day: "numeric" });
         return {
-          date:      label,
-          completed: completed.filter((t) => { const u = new Date(t.updatedAt); return u >= start && u < end; }).length,
-          created:   tasks.filter((t)     => { const c = new Date(t.createdAt); return c >= start && c < end; }).length,
-          overdue:   tasks.filter((t)     => { if (t.completed || !t.dueDate) return false; const due = new Date(t.dueDate); return due >= start && due < end; }).length,
+          date: label,
+          completed: completed.filter((t) => {
+            const u = new Date(t.updatedAt);
+            return u >= start && u < end;
+          }).length,
+          created: tasks.filter((t) => {
+            const c = new Date(t.createdAt);
+            return c >= start && c < end;
+          }).length,
+          overdue: tasks.filter((t) => {
+            if (t.completed || !t.dueDate) return false;
+            const due = new Date(t.dueDate);
+            return due >= start && due < end;
+          }).length,
+          focusMinutes: studySessions
+            .filter((s) => {
+              const started = new Date(s.startedAt);
+              return started >= start && started < end;
+            })
+            .reduce((sum, s) => sum + s.minutes, 0),
+          studied: studySessions.some((s) => {
+            const started = new Date(s.startedAt);
+            return started >= start && started < end;
+          }),
         };
       });
     }
@@ -152,10 +204,30 @@ export async function GET(req: NextRequest) {
       end.setHours(23, 59, 59, 999);
       const label = `${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })}–${end.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
       return {
-        date:      label,
-        completed: completed.filter((t) => { const u = new Date(t.updatedAt); return u >= start && u <= end; }).length,
-        created:   tasks.filter((t)     => { const c = new Date(t.createdAt); return c >= start && c <= end; }).length,
-        overdue:   tasks.filter((t)     => { if (t.completed || !t.dueDate) return false; const due = new Date(t.dueDate); return due >= start && due <= end; }).length,
+        date: label,
+        completed: completed.filter((t) => {
+          const u = new Date(t.updatedAt);
+          return u >= start && u <= end;
+        }).length,
+        created: tasks.filter((t) => {
+          const c = new Date(t.createdAt);
+          return c >= start && c <= end;
+        }).length,
+        overdue: tasks.filter((t) => {
+          if (t.completed || !t.dueDate) return false;
+          const due = new Date(t.dueDate);
+          return due >= start && due <= end;
+        }).length,
+        focusMinutes: studySessions
+          .filter((s) => {
+            const started = new Date(s.startedAt);
+            return started >= start && started <= end;
+          })
+          .reduce((sum, s) => sum + s.minutes, 0),
+        studied: studySessions.some((s) => {
+          const started = new Date(s.startedAt);
+          return started >= start && started <= end;
+        }),
       };
     });
   })();
