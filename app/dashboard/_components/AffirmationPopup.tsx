@@ -13,7 +13,7 @@ export default function AffirmationPopup() {
     const lastShown = localStorage.getItem("affirmation-date");
     if (lastShown === today) return;
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setOpen(true);
     setLoading(true);
 

@@ -51,14 +51,16 @@ describe('POST /api/ai/recommendations', () => {
     expect(body.recommendations).toEqual(['Tip A', 'Tip B', 'Tip C'])
   })
 
-  it('returns an empty array when Ollama response has no recommendations key', async () => {
+  it('returns fallback recommendations when Ollama response has no recommendations key', async () => {
     mockGetSession.mockResolvedValue(FAKE_SESSION as never)
     global.fetch = ollamaJson({})
 
     const res = await POST()
 
+    expect(res.status).toBe(200)
+
     const body = await res.json()
-    expect(body.recommendations).toEqual([])
+    expect(body.recommendations.length).toBeGreaterThan(0)
   })
 
   it('sends task stats and student name in the prompt', async () => {
@@ -81,16 +83,19 @@ describe('POST /api/ai/recommendations', () => {
     expect(prompt).toContain('Completion rate: 50%')
   })
 
-  it('returns 502 when Ollama is unreachable', async () => {
+  it('returns fallback recommendations when Ollama is unreachable', async () => {
     mockGetSession.mockResolvedValue(FAKE_SESSION as never)
     global.fetch = jest.fn().mockRejectedValue(new Error('network error'))
 
     const res = await POST()
 
-    expect(res.status).toBe(502)
+    expect(res.status).toBe(200)
+
+    const body = await res.json()
+    expect(body.recommendations.length).toBeGreaterThan(0)
   })
 
-  it('returns 502 when Ollama responds with a non-ok status', async () => {
+  it('returns fallback recommendations when Ollama responds with a non-ok status', async () => {
     mockGetSession.mockResolvedValue(FAKE_SESSION as never)
     global.fetch = jest.fn().mockResolvedValue({
       ok: false,
@@ -99,6 +104,9 @@ describe('POST /api/ai/recommendations', () => {
 
     const res = await POST()
 
-    expect(res.status).toBe(502)
+    expect(res.status).toBe(200)
+
+    const body = await res.json()
+    expect(body.recommendations.length).toBeGreaterThan(0)
   })
 })

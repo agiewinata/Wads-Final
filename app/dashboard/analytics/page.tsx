@@ -2,7 +2,11 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { csrfFetch } from "@/lib/csrf-client";
-import { Responsive, useContainerWidth } from "react-grid-layout";
+import {
+  Responsive,
+  useContainerWidth,
+  type Layout,
+} from "react-grid-layout";
 import {
   BarChart,
   Bar,
@@ -10,7 +14,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,  
+  Tooltip,
   PieChart,
   Pie,
   Legend,
@@ -26,6 +30,33 @@ import {
 
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
+
+type GridLayouts = Record<string, Layout>;
+
+type ResponsiveGridLayoutProps = {
+  children: React.ReactNode;
+  className?: string;
+  layouts: GridLayouts;
+  width: number;
+  breakpoints: Record<string, number>;
+  cols: Record<string, number>;
+  rowHeight: number;
+  margin: [number, number];
+  containerPadding: [number, number];
+  draggableHandle?: string;
+  compactType?: "vertical" | "horizontal" | null;
+  preventCollision?: boolean;
+  isBounded?: boolean;
+  onDragStop?: () => void;
+  onResizeStop?: () => void;
+  onLayoutChange?: (
+    currentLayout: Layout,
+    allLayouts: GridLayouts
+  ) => void;
+};
+
+const ResponsiveGridLayout =
+  Responsive as unknown as React.ComponentType<ResponsiveGridLayoutProps>;
 
 type RangeKey = "7d" | "30d" | "90d";
 
@@ -66,7 +97,7 @@ const RANGES: { key: RangeKey; label: string; sub: string }[] = [
   { key: "90d", label: "Term", sub: "this term" },
 ];
 
-const DEFAULT_LAYOUTS = {
+const DEFAULT_LAYOUTS: GridLayouts = {
   lg: [
     { i: "focus", x: 0, y: 0, w: 6, h: 4 },
     { i: "category", x: 6, y: 0, w: 6, h: 4 },
@@ -345,7 +376,7 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [recLoading, setRecLoading] = useState(false);
   const [range, setRange] = useState<RangeKey>("7d");
-  const [savedLayouts, setSavedLayouts] = useState(DEFAULT_LAYOUTS);
+  const [savedLayouts, setSavedLayouts] = useState<GridLayouts>(DEFAULT_LAYOUTS);
   const [layoutReady, setLayoutReady] = useState(false);
   const [resetCounter, setResetCounter] = useState(0);
 
@@ -593,7 +624,7 @@ export default function AnalyticsPage() {
       </div>
 
       {layoutReady && width > 0 && (
-        <Responsive
+        <ResponsiveGridLayout
           key={resetCounter}
           className="layout"
           layouts={savedLayouts}
@@ -609,10 +640,9 @@ export default function AnalyticsPage() {
           isBounded={false}
           onDragStop={() => { userTouched.current = true; }}
           onResizeStop={() => { userTouched.current = true; }}
-          onLayoutChange={(_, allLayouts) => {
-            // only persist after a genuine user rearrangement, never on mount/resize
+          onLayoutChange={(_currentLayout: Layout, allLayouts: GridLayouts) => {
             if (!userTouched.current) return;
-            setSavedLayouts(allLayouts as typeof DEFAULT_LAYOUTS);
+            setSavedLayouts(allLayouts);
             localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(allLayouts));
           }}
         >
@@ -996,7 +1026,7 @@ export default function AnalyticsPage() {
               </div>
             </WidgetCard>
           </div>
-        </Responsive>
+        </ResponsiveGridLayout>
       )}
     </div>
   );

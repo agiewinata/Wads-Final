@@ -205,7 +205,7 @@ export default function TasksPage() {
     return CUSTOM_CATEGORY_COLORS[index % CUSTOM_CATEGORY_COLORS.length];
   }
 
-  const categoryTabs = [
+  const categoryTabs: { value: string; label: string; bg: string; color: string; activeBg: string; id?: string }[] = [
     { value: "ALL", label: "All", bg: "#f4f4f4", color: "var(--ink-soft)", activeBg: "var(--accent)" },
     ...availableCategories.map((c, i) => ({
       ...c,
@@ -827,7 +827,7 @@ export default function TasksPage() {
                   <button
                     onClick={() => {
                       if (isCustom && "id" in cat) {
-                        deleteCategory(cat.id, cat.value);
+                        deleteCategory(cat.id!, cat.value);
                       } else if (cat.value !== "ALL") {
                         deleteBuiltInCategory(cat.value);
                       }

@@ -70,11 +70,11 @@ export default function DashboardCalendar() {
         const ed = await er.json();
         const wd = await wr.json();
 
-        // eslint-disable-next-line react-hooks/set-state-in-effect
+         
         if (tr.ok) setTasks(td);
-        // eslint-disable-next-line react-hooks/set-state-in-effect
+         
         if (er.ok) setEvents(ed);
-        // eslint-disable-next-line react-hooks/set-state-in-effect
+         
         if (wr.ok) setWorkspaceTasks(wd);
       } catch (err) {
         console.error(err);

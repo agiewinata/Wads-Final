@@ -63,7 +63,7 @@ export default function DashboardTimer() {
     if (Notification.permission === "granted") return;
     const alreadyAsked = localStorage.getItem("notif-prompt-shown");
     if (!alreadyAsked) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setShowNotifPopup(true);
       localStorage.setItem("notif-prompt-shown", "1");
     }

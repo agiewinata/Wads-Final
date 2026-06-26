@@ -73,19 +73,22 @@ Respond ONLY with valid JSON, no markdown fences:
 {"message": "string"}`;
   }
 
+  const shouldShowBurnout =
+  overdue.length >= 3 ||
+  active.length >= 8 ||
+  (overdue.length >= 1 && dueSoon.length >= 3);
+
   const fallback =
     type === "burnout"
       ? {
-          show:
-            overdue.length >= 3 ||
-            active.length >= 8 ||
-            (overdue.length >= 1 && dueSoon.length >= 3),
-          message:
-            overdue.length > 0
+          show: shouldShowBurnout,
+          message: shouldShowBurnout
+            ? overdue.length > 0
               ? `You already have ${overdue.length} overdue task${
                   overdue.length === 1 ? "" : "s"
                 }. Try finishing one first before adding more.`
-              : `You already have ${active.length} active tasks. Try clearing one small task before adding another.`,
+              : `You already have ${active.length} active tasks. Try clearing one small task before adding another.`
+            : "",
         }
       : {
           show: false,

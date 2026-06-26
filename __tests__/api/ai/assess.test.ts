@@ -173,16 +173,21 @@ describe('POST /api/ai/assess', () => {
   })
 
   describe('error handling', () => {
-    it('returns 502 when Ollama is unreachable', async () => {
+    it('returns the fallback when Ollama is unreachable', async () => {
       mockGetSession.mockResolvedValue(FAKE_SESSION as never)
       global.fetch = jest.fn().mockRejectedValue(new Error('ECONNREFUSED'))
 
       const res = await POST(makeReq('burnout'))
 
-      expect(res.status).toBe(502)
+      expect(res.status).toBe(200)
+
+      const body = await res.json()
+
+      expect(body).toHaveProperty("show")
+      expect(body).toHaveProperty("message")
     })
 
-    it('returns 502 when Ollama responds with a non-ok status', async () => {
+    it('returns the fallback when Ollama responds with a non-ok status', async () => {
       mockGetSession.mockResolvedValue(FAKE_SESSION as never)
       global.fetch = jest.fn().mockResolvedValue({
         ok: false,
@@ -191,7 +196,12 @@ describe('POST /api/ai/assess', () => {
 
       const res = await POST(makeReq('affirmation'))
 
-      expect(res.status).toBe(502)
+      expect(res.status).toBe(200)
+
+      const body = await res.json()
+
+      expect(body).toHaveProperty("show")
+      expect(body).toHaveProperty("message")
     })
   })
 })

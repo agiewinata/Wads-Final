@@ -23,7 +23,7 @@ export default function RecommendationWidget() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     fetchRecs();
   }, [fetchRecs]);
 

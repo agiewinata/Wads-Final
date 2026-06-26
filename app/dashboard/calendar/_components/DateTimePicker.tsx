@@ -52,7 +52,7 @@ export function DateTimePicker({
   useEffect(() => {
     if (!value) return;
     const d = new Date(value);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setSelectedDate(d);
     setHour(d.getHours());
     setMinute(d.getMinutes());

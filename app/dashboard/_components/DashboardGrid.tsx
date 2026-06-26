@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { Responsive, useContainerWidth } from "react-grid-layout";
+import {
+  Responsive,
+  useContainerWidth,
+  type Layout,
+} from "react-grid-layout";
 
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
@@ -12,6 +16,28 @@ import ProfileCard from "./ProfileCard";
 import DashboardCalendar from "./DashboardCalendar";
 import DashboardTimer from "./DashboardTimer";
 import RecommendationWidget from "./RecommendationWidget";
+
+type GridLayouts = Record<string, Layout[]>;
+
+type ResponsiveGridLayoutProps = {
+  children: React.ReactNode;
+  className?: string;
+  layouts: GridLayouts;
+  width: number;
+  breakpoints: Record<string, number>;
+  cols: Record<string, number>;
+  rowHeight: number;
+  margin: [number, number];
+  containerPadding: [number, number];
+  draggableHandle?: string;
+  compactType?: "vertical" | "horizontal" | null;
+  preventCollision?: boolean;
+  isBounded?: boolean;
+  onLayoutChange?: (currentLayout: Layout[], allLayouts: GridLayouts) => void;
+};
+
+const ResponsiveGridLayout =
+  Responsive as unknown as React.ComponentType<ResponsiveGridLayoutProps>;
 
 type Props = {
   user: {
@@ -164,9 +190,9 @@ export default function DashboardGrid({ user }: Props) {
         </Link>
       </div>
 
-      <Responsive
+      <ResponsiveGridLayout
         className="layout"
-        layouts={savedLayouts}
+        layouts={savedLayouts as unknown as GridLayouts}
         width={width}
         breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
         cols={{ lg: 12, md: 12, sm: 6, xs: 4, xxs: 2 }}
@@ -177,8 +203,8 @@ export default function DashboardGrid({ user }: Props) {
         compactType={null}
         preventCollision={false}
         isBounded={false}
-        onLayoutChange={(_, allLayouts) => {
-          setSavedLayouts(allLayouts as typeof DEFAULT_LAYOUTS);
+        onLayoutChange={(_currentLayout: Layout[], allLayouts: GridLayouts) => {
+          setSavedLayouts(allLayouts as unknown as typeof DEFAULT_LAYOUTS);
           localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(allLayouts));
         }}
       >
@@ -197,7 +223,7 @@ export default function DashboardGrid({ user }: Props) {
         <div key="recommendations" className="drag-handle cursor-move">
           <RecommendationWidget />
         </div>
-      </Responsive>
+      </ResponsiveGridLayout>
     </div>
   );
 }
