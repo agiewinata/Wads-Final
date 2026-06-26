@@ -730,11 +730,18 @@ export default function WorkspacePage() {
             <h2 style={{ margin: "0 0 10px", fontFamily: "var(--font-heading)", fontSize: 19, fontWeight: 600, color: "var(--ink)" }}>
               {confirmAction === "delete" ? "Delete this workspace?" : "Leave this workspace?"}
             </h2>
-            <p style={{ fontSize: 13.5, color: "var(--ink-soft)", lineHeight: 1.55, margin: 0 }}>
-              {confirmAction === "delete"
-                ? <>“{detail.name}” and all of its shared tasks will be permanently removed. This can’t be undone.</>
-                : <>You’ll be removed from “{detail.name}” and lose access to its shared tasks.</>}
-            </p>
+            <div className="app-message app-message-error">
+              {confirmAction === "delete" ? (
+                <>
+                  “{detail.name}” and all of its shared tasks will be permanently removed.
+                  This can’t be undone.
+                </>
+              ) : (
+                <>
+                  You’ll be removed from “{detail.name}” and lose access to its shared tasks.
+                </>
+              )}
+            </div>
             <div className="flex justify-end" style={{ gap: 8, marginTop: 22 }}>
               <button className="btn-paper" onClick={() => setConfirmAction(null)}>Cancel</button>
               <button
@@ -750,14 +757,18 @@ export default function WorkspacePage() {
 
       {/* create modal */}
       {showCreate && (
-        <div style={overlay} onClick={() => setShowCreate(false)}>
+        <div style={overlay} onClick={() => { setShowCreate(false); setError(""); }}>
           <div className="paper" style={{ width: "100%", maxWidth: 420, padding: "26px 28px" }} onClick={(e) => e.stopPropagation()}>
             <h2 style={{ margin: "0 0 18px", fontFamily: "var(--font-heading)", fontSize: 19, fontWeight: 600, color: "var(--ink)" }}>New workspace</h2>
             <label style={modalLabel}>Workspace name</label>
             <input style={modalInput} value={newName} autoFocus onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleCreate()} placeholder="e.g. Study Group A" />
-            <div className="app-message app-message-error">{error}</div>
+            {error.trim() && (
+              <div className="app-message app-message-error">
+                {error}
+              </div>
+            )}
             <div className="flex justify-end" style={{ gap: 8, marginTop: 20 }}>
-              <button className="btn-paper" onClick={() => setShowCreate(false)}>Cancel</button>
+              <button className="btn-paper" onClick={() => { setShowCreate(false); setError(""); }}>Cancel</button>
               <button className="btn-ink" onClick={handleCreate} disabled={saving}>{saving ? "Creating..." : "Create"}</button>
             </div>
           </div>
@@ -766,7 +777,7 @@ export default function WorkspacePage() {
 
       {/* join modal */}
       {showJoin && (
-        <div style={overlay} onClick={() => setShowJoin(false)}>
+        <div style={overlay} onClick={() => { setShowJoin(false); setError(""); }}>
           <div className="paper" style={{ width: "100%", maxWidth: 420, padding: "26px 28px" }} onClick={(e) => e.stopPropagation()}>
             <h2 style={{ margin: "0 0 18px", fontFamily: "var(--font-heading)", fontSize: 19, fontWeight: 600, color: "var(--ink)" }}>Join workspace</h2>
             <label style={modalLabel}>Invite code or link</label>
@@ -780,9 +791,13 @@ export default function WorkspacePage() {
               onKeyDown={(e) => e.key === "Enter" && handleJoin()}
               placeholder="Paste invite link or code"
             />
-            <div className="app-message app-message-error">{error}</div>
+            {error.trim() && (
+              <div className="app-message app-message-error">
+                {error}
+              </div>
+            )}
             <div className="flex justify-end" style={{ gap: 8, marginTop: 20 }}>
-              <button className="btn-paper" onClick={() => setShowJoin(false)}>Cancel</button>
+              <button className="btn-paper" onClick={() => { setShowJoin(false); setError(""); }}>Cancel</button>
               <button className="btn-ink" onClick={handleJoin} disabled={saving}>{saving ? "Joining..." : "Join"}</button>
             </div>
           </div>
