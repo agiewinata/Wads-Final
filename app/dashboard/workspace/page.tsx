@@ -71,7 +71,7 @@ function MemberAvatars({ count }: { count: number }) {
     return (
       <span className="flex items-center" style={{ gap: 6 }}>
         <span style={circle}><User size={13} /></span>
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--ink-soft)" }}>{count}</span>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--note-text)" }}>{count}</span>
       </span>
     );
   }
@@ -81,23 +81,6 @@ function MemberAvatars({ count }: { count: number }) {
         <span key={i} style={{ ...circle, marginLeft: i === 0 ? 0 : -8 }}><User size={13} /></span>
       ))}
     </span>
-  );
-}
-
-function TableScene() {
-  return (
-    <svg viewBox="0 0 150 96" width="92" height="59" fill="none" aria-hidden>
-      <ellipse cx="75" cy="62" rx="48" ry="15" fill="var(--accent-soft)" stroke="var(--accent)" strokeWidth="2" />
-      {/* top */}
-      <circle cx="75" cy="26" r="8" fill="var(--paper)" stroke="var(--accent)" strokeWidth="2" />
-      <path d="M63 50c2-9 22-9 24 0" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" />
-      {/* left */}
-      <circle cx="33" cy="40" r="7.5" fill="var(--paper)" stroke="var(--ink-soft)" strokeWidth="2" />
-      <path d="M22 62c2-9 20-9 22 0" fill="none" stroke="var(--ink-soft)" strokeWidth="2" strokeLinecap="round" />
-      {/* right */}
-      <circle cx="117" cy="40" r="7.5" fill="var(--paper)" stroke="var(--ink-soft)" strokeWidth="2" />
-      <path d="M106 62c2-9 20-9 22 0" fill="none" stroke="var(--ink-soft)" strokeWidth="2" strokeLinecap="round" />
-    </svg>
   );
 }
 
@@ -456,24 +439,35 @@ export default function WorkspacePage() {
           ) : workspaces.length === 0 ? (
             <p style={{ fontSize: 13, color: "var(--ink-faint)", textAlign: "center", marginTop: 20 }}>No workspaces yet</p>
           ) : (
-            workspaces.map((ws) => {
+            workspaces.map((ws, index) => {
               const active = ws.id === selectedId;
               const memberCount = ws.members.length + 1;
               return (
                 <button
                   key={ws.id}
                   onClick={() => setSelectedId(ws.id)}
-                  className="paper"
+                  className={`sticky sticky--flat ${NOTE_COLORS[index % NOTE_COLORS.length]}`}
                   style={{
-                    textAlign: "left", cursor: "pointer", padding: "14px 16px",
-                    border: active ? "1.5px solid var(--accent)" : "1px solid var(--line)",
-                    background: active ? "var(--accent-soft)" : "var(--paper)",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    padding: "14px 16px",
+                    border: active ? "1.5px solid var(--accent)" : "1px solid transparent",
+                    transform: active ? "rotate(-1deg)" : "rotate(0deg)",
+                    transition: "all .18s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = active
+                      ? "rotate(-1deg) translateY(-2px)"
+                      : "rotate(1deg) translateY(-2px)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = active ? "rotate(-1deg)" : "rotate(0deg)";
                   }}
                 >
-                  <div style={{ fontWeight: 600, fontSize: 14.5, color: "var(--ink)", marginBottom: 10 }}>{ws.name}</div>
+                  <div style={{ fontWeight: 600, fontSize: 14.5, color: "var(--note-text)", marginBottom: 10 }}>{ws.name}</div>
                   <div className="flex items-center justify-between" style={{ gap: 8 }}>
                     <MemberAvatars count={memberCount} />
-                    <span className="pill" style={{ background: "var(--accent-soft)", color: "var(--accent-text)" }}>
+                    <span className="pill" style={{ background: "rgba(255,255,255,0.5)", color: "var(--note-text)", }}>
                       {ws._count.tasks} task{ws._count.tasks !== 1 ? "s" : ""}
                     </span>
                   </div>
@@ -502,12 +496,48 @@ export default function WorkspacePage() {
               <div className="paper flex items-center justify-between flex-wrap" style={{ gap: 10, padding: "16px 20px" }}>
                 <h2 style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: 20, fontWeight: 600, color: "var(--ink)" }}>{detail.name}</h2>
                 <div className="flex items-center" style={{ gap: 8 }}>
-                  <button onClick={copyInviteLink} className="btn-paper">
+                  <button
+                    onClick={copyInviteLink}
+                    className="btn-paper"
+                    style={{
+                      transition: "all .18s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "var(--accent)";
+                      e.currentTarget.style.color = "#fff";
+                      e.currentTarget.style.borderColor = "var(--accent)";
+                      e.currentTarget.style.transform = "translateY(-1px)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "";
+                      e.currentTarget.style.color = "";
+                      e.currentTarget.style.borderColor = "";
+                      e.currentTarget.style.transform = "";
+                    }}
+                  >
                     {copied ? <><Check size={14} /> Copied!</> : <><Copy size={14} /> Copy invite link</>}
                   </button>
                   <button
                     onClick={detail.ownerId === currentUserId ? handleDelete : handleLeave}
-                    style={{ padding: "9px 15px", fontSize: 13.5, fontWeight: 600, borderRadius: 10, cursor: "pointer", background: "transparent", color: "var(--bad)", border: "1px solid var(--bad)" }}
+                    style={{
+                      padding: "9px 15px",
+                      fontSize: 13.5,
+                      fontWeight: 600,
+                      borderRadius: 10,
+                      cursor: "pointer",
+                      background: "transparent",
+                      color: "var(--bad)",
+                      border: "1px solid var(--bad)",
+                      transition: "all .18s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "var(--bad)";
+                      e.currentTarget.style.color = "#fff";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = "var(--bad)";
+                    }}
                   >
                     {detail.ownerId === currentUserId ? "Delete" : "Leave"}
                   </button>
@@ -516,16 +546,6 @@ export default function WorkspacePage() {
 
               {/* team */}
               <div className="paper" style={{ padding: "18px 20px" }}>
-                <div className="flex items-start justify-between" style={{ marginBottom: 16, gap: 12 }}>
-                  <div>
-                    <h3 style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: 17, fontWeight: 600, color: "var(--ink)" }}>Team</h3>
-                    <p style={{ fontSize: 12.5, color: "var(--ink-soft)", marginTop: 4 }}>
-                      {team.length} {team.length === 1 ? "person" : "people"} collaborating
-                    </p>
-                  </div>
-                  <TableScene />
-                </div>
-
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16 }}>
                   {team.map((person, i) => {
                     const isLeader = person.role === "leader";
@@ -566,6 +586,14 @@ export default function WorkspacePage() {
 
               {/* shared tasks */}
               <div className="paper" style={{ padding: "18px 20px" }}>
+                <div style={{ marginBottom: 16 }}>
+                  <h3 style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: 17, fontWeight: 600, color: "var(--ink)" }}>
+                    Team
+                  </h3>
+                  <p style={{ fontSize: 12.5, color: "var(--ink-soft)", marginTop: 4 }}>
+                    {team.length} {team.length === 1 ? "person" : "people"} collaborating
+                  </p>
+                </div>
                 <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
                   <h3 style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: 17, fontWeight: 600, color: "var(--ink)" }}>Shared tasks</h3>
                   <button className="btn-ink" style={{ padding: "8px 14px", fontSize: 13 }} onClick={() => { clearTaskForm(); setEditingTask(null); setError(""); setShowAddTask(true); }}>
