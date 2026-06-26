@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import Calendar from "react-calendar";
-import "react-calendar/dist/Calendar.css";
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
 
 interface DateTimePickerProps {
   value: string;
@@ -11,7 +10,23 @@ interface DateTimePickerProps {
   placeholder?: string;
 }
 
-const IRREGULAR = "6px 8px 5px 7px / 7px 5px 8px 6px";
+const DOW = ["S", "M", "T", "W", "T", "F", "S"];
+
+function sameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function buildCells(y: number, m: number) {
+  const first = new Date(y, m, 1);
+  const startDow = first.getDay();
+  const days = new Date(y, m + 1, 0).getDate();
+  const arr: { date: Date; muted: boolean }[] = [];
+  for (let i = startDow - 1; i >= 0; i--) arr.push({ date: new Date(y, m, -i), muted: true });
+  for (let d = 1; d <= days; d++) arr.push({ date: new Date(y, m, d), muted: false });
+  let n = 1;
+  while (arr.length < 42) arr.push({ date: new Date(y, m + 1, n++), muted: true });
+  return arr;
+}
 
 export function DateTimePicker({
   value,
@@ -24,6 +39,10 @@ export function DateTimePicker({
   const [selectedDate, setSelectedDate] = useState<Date | null>(parsed);
   const [hour, setHour] = useState(parsed ? parsed.getHours() : 9);
   const [minute, setMinute] = useState(parsed ? parsed.getMinutes() : 0);
+  const [view, setView] = useState<{ y: number; m: number }>(() => {
+    const d = parsed ?? new Date();
+    return { y: d.getFullYear(), m: d.getMonth() };
+  });
   const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 0 });
 
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -37,17 +56,14 @@ export function DateTimePicker({
     setSelectedDate(d);
     setHour(d.getHours());
     setMinute(d.getMinutes());
+    setView({ y: d.getFullYear(), m: d.getMonth() });
   }, [value]);
 
   /* Close on outside click */
   useEffect(() => {
     if (!open) return;
     function handle(e: MouseEvent) {
-      if (
-        triggerRef.current?.contains(e.target as Node) ||
-        dropRef.current?.contains(e.target as Node)
-      )
-        return;
+      if (triggerRef.current?.contains(e.target as Node) || dropRef.current?.contains(e.target as Node)) return;
       setOpen(false);
     }
     document.addEventListener("mousedown", handle);
@@ -57,11 +73,11 @@ export function DateTimePicker({
   function openPicker() {
     if (!triggerRef.current) return;
     const r = triggerRef.current.getBoundingClientRect();
-    const dropHeight = 420;
+    const dropHeight = 430;
     const spaceBelow = window.innerHeight - r.bottom - 8;
-    const top =
-      spaceBelow >= dropHeight ? r.bottom + 6 : r.top - dropHeight - 6;
+    const top = spaceBelow >= dropHeight ? r.bottom + 6 : Math.max(8, r.top - dropHeight - 6);
     setDropPos({ top, left: r.left, width: r.width });
+    if (selectedDate) setView({ y: selectedDate.getFullYear(), m: selectedDate.getMonth() });
     setOpen((o) => !o);
   }
 
@@ -74,49 +90,26 @@ export function DateTimePicker({
 
   function handleDateSelect(date: Date) {
     setSelectedDate(date);
+    if (date.getMonth() !== view.m || date.getFullYear() !== view.y) setView({ y: date.getFullYear(), m: date.getMonth() });
     commit(date, hour, minute);
   }
-
+  function shiftMonth(delta: number) {
+    setView((v) => { const d = new Date(v.y, v.m + delta, 1); return { y: d.getFullYear(), m: d.getMonth() }; });
+  }
   function nudgeHour(delta: number) {
     const next = (hour + delta + 24) % 24;
     setHour(next);
     commit(selectedDate, next, minute);
   }
-
   function nudgeMinute(delta: number) {
     const next = (minute + delta + 60) % 60;
     setMinute(next);
     commit(selectedDate, hour, next);
   }
 
-  function formatDisplay() {
-    if (!selectedDate) return null;
-    return (
-      <>
-        <span>
-          {selectedDate.toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })}
-        </span>
-        <span
-          style={{
-            fontWeight: 800,
-            fontSize: 13,
-            color: "#111",
-            background: "#f4f4f5",
-            border: "1.5px solid #e4e4e7",
-            borderRadius: 4,
-            padding: "1px 7px",
-            letterSpacing: "0.02em",
-          }}
-        >
-          {String(hour).padStart(2, "0")}:{String(minute).padStart(2, "0")}
-        </span>
-      </>
-    );
-  }
+  const today = new Date();
+  const cells = buildCells(view.y, view.m);
+  const monthLabel = new Date(view.y, view.m, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
   return (
     <>
@@ -125,180 +118,129 @@ export function DateTimePicker({
         type="button"
         onClick={openPicker}
         style={{
-          width: "100%",
-          padding: "8px 12px",
-          border: `2px solid ${open ? "#111" : "#d4d4d8"}`,
-          borderRadius: 4,
-          fontSize: 13,
-          fontFamily: "inherit",
-          background: "white",
-          color: selectedDate ? "#111" : "#a1a1aa",
-          cursor: "pointer",
-          textAlign: "left",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 8,
+          width: "100%", padding: "9px 12px",
+          border: `1px solid ${open ? "var(--accent)" : "var(--line-strong)"}`,
+          borderRadius: 9, fontSize: 13.5, fontFamily: "inherit", background: "var(--paper)",
+          color: selectedDate ? "var(--ink)" : "var(--ink-faint)", cursor: "pointer", textAlign: "left",
+          display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
           transition: "border-color 0.12s",
         }}
       >
-        <span style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
-          {selectedDate ? formatDisplay() : placeholder}
+        <span style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
+          {selectedDate ? (
+            <>
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {selectedDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+              </span>
+              <span style={{
+                fontWeight: 700, fontSize: 12.5, color: "var(--accent-text)", background: "var(--accent-soft)",
+                borderRadius: 6, padding: "1px 7px", letterSpacing: "0.02em", fontFamily: "var(--font-mono)", flexShrink: 0,
+              }}>
+                {String(hour).padStart(2, "0")}:{String(minute).padStart(2, "0")}
+              </span>
+            </>
+          ) : placeholder}
         </span>
-        <span style={{ color: "#a1a1aa", fontSize: 10, flexShrink: 0 }}>
-          {open ? "▴" : "▾"}
-        </span>
+        <ChevronDown size={15} style={{ color: "var(--ink-soft)", flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform .12s" }} />
       </button>
 
       {open && createPortal(
         <div
           ref={dropRef}
+          className="paper"
           style={{
-            position: "fixed",
-            top: dropPos.top,
-            left: dropPos.left,
-            minWidth: Math.max(dropPos.width, 296),
-            zIndex: 9999,
-            background: "white",
-            border: "2px solid #111",
-            borderRadius: IRREGULAR,
-            boxShadow: "5px 6px 0 rgba(0,0,0,0.14)",
-            padding: "14px 14px 12px",
+            position: "fixed", top: dropPos.top, left: dropPos.left,
+            minWidth: Math.max(dropPos.width, 300), width: Math.max(dropPos.width, 300),
+            zIndex: 9999, padding: 14,
           }}
         >
-          {/* Calendar */}
-          <div className="themed-cal">
-            <Calendar
-              onChange={(v) => handleDateSelect(v as Date)}
-              value={selectedDate ?? new Date()}
-            />
+          {/* month nav */}
+          <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
+            <button type="button" onClick={() => shiftMonth(-1)} className="grid place-items-center" style={navBtn}><ChevronLeft size={16} /></button>
+            <div style={{ fontFamily: "var(--font-heading)", fontSize: 14.5, fontWeight: 600, color: "var(--ink)" }}>{monthLabel}</div>
+            <button type="button" onClick={() => shiftMonth(1)} className="grid place-items-center" style={navBtn}><ChevronRight size={16} /></button>
           </div>
 
-          {/* Divider */}
-          <div
-            style={{
-              borderTop: "1.5px solid #e4e4e7",
-              margin: "10px -14px",
-            }}
-          />
+          {/* grid */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+            {DOW.map((d, i) => (
+              <div key={i} style={{ fontSize: 10.5, fontWeight: 700, textAlign: "center", color: "var(--ink-faint)", paddingBottom: 4, textTransform: "uppercase" }}>{d}</div>
+            ))}
+            {cells.map(({ date, muted }, i) => {
+              const isSel = selectedDate ? sameDay(date, selectedDate) : false;
+              const isToday = sameDay(date, today);
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => handleDateSelect(date)}
+                  style={{
+                    aspectRatio: "1", display: "grid", placeItems: "center",
+                    fontSize: 13, borderRadius: "50%", border: "none", cursor: "pointer",
+                    fontWeight: isSel ? 700 : 500,
+                    color: isSel ? "#fff" : muted ? "var(--ink-faint)" : "var(--ink-soft)",
+                    background: isSel ? "var(--accent)" : "transparent",
+                    opacity: muted ? 0.45 : 1,
+                    boxShadow: !isSel && isToday ? "inset 0 0 0 1.5px var(--accent)" : "none",
+                  }}
+                >
+                  {date.getDate()}
+                </button>
+              );
+            })}
+          </div>
 
-          {/* Time picker */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 10,
-              padding: "4px 0 6px",
-            }}
-          >
-            <span
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.1em",
-                color: "#a1a1aa",
-                width: 36,
-              }}
-            >
-              Time
-            </span>
+          {/* divider */}
+          <div style={{ borderTop: "1px solid var(--line)", margin: "12px -14px" }} />
 
-            {/* Hour column */}
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
-              <button type="button" onClick={() => nudgeHour(1)} style={arrowBtn}>
-                ▲
-              </button>
+          {/* time */}
+          <div className="flex items-center justify-center" style={{ gap: 10, padding: "2px 0 4px" }}>
+            <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--ink-faint)", width: 34 }}>Time</span>
+
+            <div className="flex flex-col items-center" style={{ gap: 3 }}>
+              <button type="button" onClick={() => nudgeHour(1)} style={arrowBtn}><ChevronUp size={13} /></button>
               <div style={timeBox}>{String(hour).padStart(2, "0")}</div>
-              <button type="button" onClick={() => nudgeHour(-1)} style={arrowBtn}>
-                ▼
-              </button>
+              <button type="button" onClick={() => nudgeHour(-1)} style={arrowBtn}><ChevronDown size={13} /></button>
             </div>
 
-            <span
-              style={{
-                fontSize: 22,
-                fontWeight: 900,
-                color: "#111",
-                lineHeight: 1,
-                marginTop: -2,
-                userSelect: "none",
-              }}
-            >
-              :
-            </span>
+            <span style={{ fontSize: 20, fontWeight: 800, color: "var(--ink)", lineHeight: 1, marginTop: -2, userSelect: "none" }}>:</span>
 
-            {/* Minute column */}
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
-              <button type="button" onClick={() => nudgeMinute(5)} style={arrowBtn}>
-                ▲
-              </button>
+            <div className="flex flex-col items-center" style={{ gap: 3 }}>
+              <button type="button" onClick={() => nudgeMinute(5)} style={arrowBtn}><ChevronUp size={13} /></button>
               <div style={timeBox}>{String(minute).padStart(2, "0")}</div>
-              <button type="button" onClick={() => nudgeMinute(-5)} style={arrowBtn}>
-                ▼
-              </button>
+              <button type="button" onClick={() => nudgeMinute(-5)} style={arrowBtn}><ChevronDown size={13} /></button>
             </div>
 
-            {/* Quick presets */}
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 3,
-                marginLeft: 8,
-              }}
-            >
+            <div className="flex flex-col" style={{ gap: 3, marginLeft: 6 }}>
               {[
                 { label: "9 AM", h: 9, m: 0 },
                 { label: "12 PM", h: 12, m: 0 },
                 { label: "5 PM", h: 17, m: 0 },
-              ].map(({ label, h, m }) => (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => {
-                    setHour(h);
-                    setMinute(m);
-                    commit(selectedDate, h, m);
-                  }}
-                  style={{
-                    padding: "2px 8px",
-                    fontSize: 10,
-                    fontWeight: 700,
-                    background: hour === h && minute === m ? "#111" : "#f4f4f5",
-                    color: hour === h && minute === m ? "white" : "#71717a",
-                    border: "1.5px solid #e4e4e7",
-                    borderRadius: 4,
-                    cursor: "pointer",
-                    transition: "all 0.1s",
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
+              ].map(({ label, h, m }) => {
+                const active = hour === h && minute === m;
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => { setHour(h); setMinute(m); commit(selectedDate, h, m); }}
+                    style={{
+                      padding: "2px 9px", fontSize: 10.5, fontWeight: 700, cursor: "pointer", borderRadius: 6,
+                      background: active ? "var(--accent)" : "var(--paper-2)",
+                      color: active ? "#fff" : "var(--ink-soft)",
+                      border: `1px solid ${active ? "var(--accent)" : "var(--line)"}`,
+                      transition: "all 0.1s",
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Confirm */}
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            style={{
-              width: "100%",
-              marginTop: 4,
-              padding: "7px",
-              background: "#111",
-              color: "white",
-              fontSize: 12,
-              fontWeight: 700,
-              border: "2px solid #111",
-              borderRadius: "3px 5px 3px 5px / 5px 3px 5px 3px",
-              cursor: "pointer",
-              letterSpacing: "0.02em",
-            }}
-          >
-            {selectedDate ? "Confirm" : "Cancel"}
+          {/* confirm */}
+          <button type="button" onClick={() => setOpen(false)} className="btn-ink" style={{ width: "100%", justifyContent: "center", marginTop: 8 }}>
+            {selectedDate ? "Confirm" : "Close"}
           </button>
         </div>,
         document.body
@@ -307,30 +249,20 @@ export function DateTimePicker({
   );
 }
 
+const navBtn: React.CSSProperties = {
+  width: 28, height: 28, borderRadius: 8, border: "1px solid var(--line-strong)",
+  background: "var(--paper)", color: "var(--ink-soft)", cursor: "pointer",
+};
+
 const arrowBtn: React.CSSProperties = {
-  background: "white",
-  border: "1.5px solid #e4e4e7",
-  borderRadius: 3,
-  padding: "2px 8px",
-  fontSize: 8,
-  cursor: "pointer",
-  color: "#71717a",
-  lineHeight: 1,
-  transition: "background 0.1s",
+  background: "var(--paper)", border: "1px solid var(--line-strong)", borderRadius: 6,
+  padding: "3px 8px", cursor: "pointer", color: "var(--ink-soft)", lineHeight: 1,
+  display: "grid", placeItems: "center",
 };
 
 const timeBox: React.CSSProperties = {
-  width: 48,
-  height: 40,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontSize: 22,
-  fontWeight: 800,
-  letterSpacing: "-0.02em",
-  color: "#111",
-  border: "2px solid #111",
-  borderRadius: "4px 6px 4px 6px",
-  background: "#fafafa",
-  userSelect: "none",
+  width: 46, height: 38, display: "flex", alignItems: "center", justifyContent: "center",
+  fontSize: 20, fontWeight: 700, letterSpacing: "-0.02em", color: "var(--ink)",
+  border: "1px solid var(--line-strong)", borderRadius: 8, background: "var(--paper-2)",
+  fontFamily: "var(--font-mono)", userSelect: "none",
 };
